@@ -162,10 +162,21 @@ export class ParametresComponent implements OnInit {
 
   saveAdd() {
     const { semaine, variation } = this.addForm;
-    // Calculer le poids cumulé
+    // Décaler les semaines existantes >= semaine vers le bas (+1) si collision
+    const collision = this.ficheDefaut.some(r => r.semaine === semaine);
+    if (collision) {
+      for (const r of this.ficheDefaut) {
+        if (r.semaine >= semaine) {
+          r.semaine += 1;
+        }
+      }
+    }
     const prevRow = this.ficheDefaut.filter(r => r.semaine < semaine).sort((a, b) => b.semaine - a.semaine)[0];
     const poids = (prevRow ? prevRow.poids : 0) + variation;
-    this.api.createFicheDefautRow({ semaine, variation, poids }).subscribe(res => {
+    this.ficheDefaut.push({ semaine, variation, poids, id_row: -1 });
+    this.recalcPoidsCumule();
+    const rows = this.ficheDefaut.map(r => ({ semaine: r.semaine, variation: r.variation, poids: r.poids }));
+    this.api.saveFicheDefaut(rows).subscribe(res => {
       if (res.error) { this.toast.show('Erreur : ' + res.error, 'danger'); return; }
       this.ficheDefaut = res.data || [];
       this.recalcPoidsCumule();
@@ -189,14 +200,44 @@ export class ParametresComponent implements OnInit {
   saveInsert() {
     if (this.insertingAfter == null) return;
     const { semaine, variation } = this.insertForm;
+    // Décaler toutes les semaines >= semaine vers le bas (+1)
+    for (const r of this.ficheDefaut) {
+      if (r.semaine >= semaine) {
+        r.semaine += 1;
+      }
+    }
     const prevRow = this.ficheDefaut.filter(r => r.semaine < semaine).sort((a, b) => b.semaine - a.semaine)[0];
     const poids = (prevRow ? prevRow.poids : 0) + variation;
-    this.api.createFicheDefautRow({ semaine, variation, poids }).subscribe(res => {
+    // Sauvegarder tout (recalcul + nouvelle ligne)
+    this.ficheDefaut.push({ semaine, variation, poids, id_row: -1 });
+    this.recalcPoidsCumule();
+    const rows = this.ficheDefaut.map(r => ({ semaine: r.semaine, variation: r.variation, poids: r.poids }));
+    this.api.saveFicheDefaut(rows).subscribe(res => {
       if (res.error) { this.toast.show('Erreur : ' + res.error, 'danger'); return; }
       this.ficheDefaut = res.data || [];
       this.recalcPoidsCumule();
       this.insertingAfter = null;
-      this.toast.show('Ligne insérée', 'success');
+      this.toast.show('Ligne insérée — semaines décalées', 'success');
+    });
+  }
+
+  // Monter une ligne : échange la variation avec la ligne du dessus (semaines fixe)
+  moveUp(row: any) {
+    const idx = this.ficheDefaut.indexOf(row);
+    if (idx <= 0) return;
+    const above = this.ficheDefaut[idx - 1];
+    // Échanger uniquement les variations — les semaines restent séquentielles
+    const tmpV = row.variation;
+    row.variation = above.variation;
+    above.variation = tmpV;
+    // Recalculer et sauvegarder
+    this.recalcPoidsCumule();
+    const rows = this.ficheDefaut.map(r => ({ semaine: r.semaine, variation: r.variation, poids: r.poids }));
+    this.api.saveFicheDefaut(rows).subscribe(res => {
+      if (res.error) { this.toast.show('Erreur : ' + res.error, 'danger'); return; }
+      this.ficheDefaut = res.data || [];
+      this.recalcPoidsCumule();
+      this.toast.show('Ligne déplacée vers le haut', 'success');
     });
   }
 

@@ -97,7 +97,7 @@
             <th>Variation (g)</th>
             <th>Poids cumulé (g)</th>
             <th>Poids (kg)</th>
-            <th style="width:160px;text-align:right;">Actions</th>
+            <th style="width:190px;text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -128,7 +128,10 @@
                 <td>{{ row.poids }} g</td>
                 <td>{{ (row.poids / 1000).toFixed(3) }} kg</td>
                 <td style="text-align:right;">
-                  <button class="btn-icon" (click)="startEdit(row)" title="Modifier">
+                  <button class="btn-icon" (click)="moveUp(row)" title="Monter" [disabled]="i === 0" [style.opacity]="i === 0 ? '0.3' : '1'">
+                    <i class="bi bi-arrow-up" style="font-size:14px;color:var(--text);"></i>
+                  </button>
+                  <button class="btn-icon" (click)="startEdit(row)" title="Modifier" style="margin-left:4px;">
                     <i class="bi bi-pencil" style="font-size:14px;color:var(--primary);"></i>
                   </button>
                   <button class="btn-icon" (click)="startInsertAfter(row)" title="Insérer après" style="margin-left:4px;">

@@ -1,6 +1,12 @@
 /**
  * AKOHO — Script d'initialisation de la base de données
- * Lance schema.sql puis data.sql sur SQL Server
+ *
+ * Exécute dans l'ordre :
+ *   1. schema.sql  → création de la base, tables, triggers, fonctions, vues
+ *   2. data.sql    → données de référence (races, nourriture, paramètres, fiche défaut)
+ *                   + données de test (lots, production, ventes, pertes)
+ *
+ * Voir db/INSTALLATION.md pour le guide complet.
  */
 require('dotenv').config();
 const sql = require('mssql');
