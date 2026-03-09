@@ -200,5 +200,31 @@ GO
 -- ============================================================
 -- Aucune cession pour le moment
 
+-- ============================================================
+-- PARAMETRES
+-- ============================================================
+DELETE FROM parametre;
+INSERT INTO parametre (cle, valeur, label, type_input) VALUES
+('limite_vente_active',    '0', 'Activer limitation de vente',                   'toggle'),
+('limite_vente_semaine',   '6', 'Semaine minimale pour vendre des poulets',       'number'),
+('limite_vente_poids_kg',  '0.5', 'Poids minimum pour vendre (kg)',               'number'),
+('arret_poids_active',     '0', 'Activer arrêt progression du poids',            'toggle'),
+('arret_poids_semaine',    '25', 'Semaine d''arrêt de progression du poids',      'number'),
+('fiche_defaut_active',    '1', 'Utiliser fiche par défaut si semaines manquantes','toggle');
+GO
+
+-- ============================================================
+-- FICHE PAR DEFAUT 30 SEMAINES
+-- ============================================================
+DELETE FROM fiche_defaut_row;
+INSERT INTO fiche_defaut_row (semaine, variation, poids) VALUES
+(1, 45, 30), (2, 50, 45), (3, 48, 55), (4, 45, 65), (5, 40, 80),
+(6, 35, 95), (7, 30, 110), (8, 28, 125), (9, 25, 135), (10, 22, 145),
+(11, 20, 155), (12, 18, 165), (13, 16, 175), (14, 14, 182), (15, 12, 190),
+(16, 10, 196), (17, 9, 202), (18, 8, 208), (19, 7, 212), (20, 6, 216),
+(21, 5, 220), (22, 5, 224), (23, 4, 227), (24, 4, 230), (25, 3, 232),
+(26, 3, 234), (27, 2, 235), (28, 2, 236), (29, 1, 237), (30, 1, 238);
+GO
+
 PRINT '✅ Test data inserted successfully';
 GO

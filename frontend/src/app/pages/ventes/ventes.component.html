@@ -148,15 +148,28 @@
             </select>
           </div>
           <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="vpDate" (change)="updateVPEstimates()"></div>
+          @if (!vpVenteAutorisee) {
+            <div class="badge" style="background:#EF444420;color:#EF4444;padding:10px 14px;font-size:13px;border-radius:var(--radius-sm);">
+              <i class="bi bi-exclamation-triangle" style="margin-right:6px;"></i>
+              Vente bloquée : {{ vpVenteBloqueeRaison }}
+            </div>
+          }
+          @if (vpSemaine != null) {
+            <div style="font-size:12px;color:var(--text-muted);background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm);">
+              Âge du lot : <strong>semaine {{ vpSemaine }}</strong>
+              @if (vpJours) { <span> + {{ vpJours }} jour{{ vpJours > 1 ? 's' : '' }}</span> }
+              — Poids unitaire estimé : <strong>{{ vpPoidsUnitaire ? (vpPoidsUnitaire * 1000 | number:'1.0-0') + ' g' : '—' }}</strong>
+            </div>
+          }
           <div><label class="form-label">Nombre de poulets *</label><input type="number" class="form-control" [(ngModel)]="vpNb" min="1" (input)="updateVPPoids()"></div>
-          <div><label class="form-label">Poids total (kg) * <span class="text-muted">{{ vpPoidsHint }}</span></label><input type="number" class="form-control" [(ngModel)]="vpPoids" min="0.1" step="0.1" (input)="updateVPTotal()"></div>
-          <div><label class="form-label">Prix/kg (Ar) <span class="text-muted">— vide = prix race</span></label><input type="number" class="form-control" [(ngModel)]="vpPrix" min="0" (input)="updateVPTotal()"></div>
+          <div><label class="form-label">Poids total (kg) * <span class="text-muted">{{ vpPoidsHint }}</span></label><input type="number" class="form-control" [(ngModel)]="vpPoids" min="0.001" step="0.001" (input)="updateVPTotal()"></div>
+          <div><label class="form-label">Prix/kg (Ar) <span class="text-muted">{{ vpPrix ? '' : '— auto depuis race' }}</span></label><input type="number" class="form-control" [(ngModel)]="vpPrix" min="0" (input)="updateVPTotal()"></div>
           <div class="text-muted" style="font-size:13px;">{{ vpTotal }}</div>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
         <button class="btn btn-outline" (click)="showVPModal = false">Annuler</button>
-        <button class="btn btn-primary" (click)="submitVP()">Enregistrer</button>
+        <button class="btn btn-primary" [disabled]="!vpVenteAutorisee" (click)="submitVP()">Enregistrer</button>
       </div>
     </div>
   </div>

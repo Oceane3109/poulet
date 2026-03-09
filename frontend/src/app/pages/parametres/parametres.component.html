@@ -1,0 +1,184 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+  <h1 style="font-size:22px;font-weight:700;">Paramètres</h1>
+</div>
+
+@if (loading) {
+  <div class="card" style="padding:40px;text-align:center;">
+    <span class="text-muted">Chargement...</span>
+  </div>
+} @else {
+
+  <!-- Groupes de paramètres -->
+  @for (group of groups; track group.title) {
+    <div class="card mb-20" style="padding:0;overflow:hidden;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;">
+            <i class="bi" [ngClass]="group.icon" style="font-size:18px;color:var(--primary);"></i>
+          </div>
+          <div>
+            <h3 style="font-size:16px;font-weight:600;margin:0;">{{ group.title }}</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin:4px 0 0;">{{ group.description }}</p>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;">
+        @for (key of group.keys; track key) {
+          @if (getParam(key); as param) {
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);"
+                 [style.opacity]="(!key.endsWith('_active') && !isGroupActive(group)) ? '0.4' : '1'">
+              <div>
+                <div style="font-size:14px;font-weight:500;color:var(--text);">{{ param.label }}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                  Clé : <code>{{ key }}</code>
+                  @if (param.type_input === 'toggle') {
+                    — {{ isToggleOn(key) ? 'Activé' : 'Désactivé' }}
+                  }
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                @if (param.type_input === 'toggle') {
+                  <button class="btn btn-sm"
+                          [class.btn-primary]="isToggleOn(key)"
+                          [class.btn-outline]="!isToggleOn(key)"
+                          (click)="toggleParam(key)"
+                          style="min-width:80px;">
+                    {{ isToggleOn(key) ? 'Activé' : 'Désactivé' }}
+                  </button>
+                } @else {
+                  <input type="number" class="form-control"
+                         [value]="getParamValue(key)"
+                         (change)="onNumberChange(key, $event)"
+                         [disabled]="!isGroupActive(group)"
+                         style="width:100px;text-align:right;">
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Fiche par défaut — Édition avancée -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-table" style="font-size:18px;color:var(--primary);"></i>
+        </div>
+        <div style="flex:1;">
+          <h3 style="font-size:16px;font-weight:600;margin:0;">Fiche par défaut ({{ ficheDefaut.length }} semaines)</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin:4px 0 0;">
+            Progression approximative du poids — modifiable ligne par ligne.
+            @if (!isToggleOn('fiche_defaut_active')) {
+              <span class="badge" style="background:#EF444420;color:#EF4444;font-size:11px;margin-left:6px;">Désactivée</span>
+            } @else {
+              <span class="badge" style="background:#22C55E20;color:#22C55E;font-size:11px;margin-left:6px;">Active</span>
+            }
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" (click)="saveAllFiche()" title="Recalculer les poids cumulés et sauvegarder">
+            <i class="bi bi-arrow-clockwise"></i> Recalculer &amp; sauvegarder
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="startAdd()">
+            <i class="bi bi-plus-lg"></i> Ajouter une ligne
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0;max-height:600px;overflow-y:auto;">
+      <table class="table" style="margin:0;">
+        <thead>
+          <tr>
+            <th style="width:60px;text-align:center;">#</th>
+            <th>Semaine</th>
+            <th>Variation (g)</th>
+            <th>Poids cumulé (g)</th>
+            <th>Poids (kg)</th>
+            <th style="width:160px;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of ficheDefaut; track row.id_row; let i = $index) {
+            <!-- Mode édition -->
+            @if (editingRow?.id_row === row.id_row) {
+              <tr style="background:var(--primary-light);">
+                <td style="text-align:center;font-weight:600;">{{ i + 1 }}</td>
+                <td><input type="number" class="form-control" [(ngModel)]="editForm.semaine" style="width:80px;" min="1"></td>
+                <td><input type="number" class="form-control" [(ngModel)]="editForm.variation" style="width:100px;" min="0" step="0.1"></td>
+                <td style="color:var(--text-muted);">auto</td>
+                <td style="color:var(--text-muted);">auto</td>
+                <td style="text-align:right;">
+                  <button class="btn btn-primary btn-sm" (click)="saveEdit()" style="margin-right:4px;">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button class="btn btn-outline btn-sm" (click)="cancelEdit()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </td>
+              </tr>
+            } @else {
+              <!-- Mode lecture -->
+              <tr>
+                <td style="text-align:center;font-weight:600;color:var(--text-muted);">{{ i + 1 }}</td>
+                <td style="font-weight:600;">S{{ row.semaine }}</td>
+                <td>+{{ row.variation }} g</td>
+                <td>{{ row.poids }} g</td>
+                <td>{{ (row.poids / 1000).toFixed(3) }} kg</td>
+                <td style="text-align:right;">
+                  <button class="btn-icon" (click)="startEdit(row)" title="Modifier">
+                    <i class="bi bi-pencil" style="font-size:14px;color:var(--primary);"></i>
+                  </button>
+                  <button class="btn-icon" (click)="startInsertAfter(row)" title="Insérer après" style="margin-left:4px;">
+                    <i class="bi bi-plus-circle" style="font-size:14px;color:var(--success);"></i>
+                  </button>
+                  <button class="btn-icon" (click)="deleteRow(row)" title="Supprimer" style="margin-left:4px;">
+                    <i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+            <!-- Ligne d'insertion après cette ligne -->
+            @if (insertingAfter === row.id_row) {
+              <tr style="background:#F0FDF4;">
+                <td style="text-align:center;"><i class="bi bi-arrow-return-right" style="color:var(--success);"></i></td>
+                <td><input type="number" class="form-control" [(ngModel)]="insertForm.semaine" style="width:80px;" min="1"></td>
+                <td><input type="number" class="form-control" [(ngModel)]="insertForm.variation" style="width:100px;" min="0" step="0.1"></td>
+                <td style="color:var(--text-muted);">auto</td>
+                <td style="color:var(--text-muted);">auto</td>
+                <td style="text-align:right;">
+                  <button class="btn btn-primary btn-sm" (click)="saveInsert()" style="margin-right:4px;">
+                    <i class="bi bi-check-lg"></i> Insérer
+                  </button>
+                  <button class="btn btn-outline btn-sm" (click)="cancelInsert()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+          <!-- Ligne d'ajout à la fin -->
+          @if (addingRow) {
+            <tr style="background:#EFF6FF;">
+              <td style="text-align:center;"><i class="bi bi-plus-lg" style="color:var(--primary);"></i></td>
+              <td><input type="number" class="form-control" [(ngModel)]="addForm.semaine" style="width:80px;" min="1"></td>
+              <td><input type="number" class="form-control" [(ngModel)]="addForm.variation" style="width:100px;" min="0" step="0.1"></td>
+              <td style="color:var(--text-muted);">auto</td>
+              <td style="color:var(--text-muted);">auto</td>
+              <td style="text-align:right;">
+                <button class="btn btn-primary btn-sm" (click)="saveAdd()" style="margin-right:4px;">
+                  <i class="bi bi-check-lg"></i> Ajouter
+                </button>
+                <button class="btn btn-outline btn-sm" (click)="cancelAdd()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

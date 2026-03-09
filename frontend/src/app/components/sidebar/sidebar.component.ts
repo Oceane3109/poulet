@@ -65,6 +65,7 @@ export class SidebarComponent {
       title: 'Outils',
       items: [
         { label: 'Calendrier', icon: 'bi-calendar3', route: '/calendrier' },
+        { label: 'Paramètres', icon: 'bi-gear', route: '/parametres' },
       ]
     }
   ];

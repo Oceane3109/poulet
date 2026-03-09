@@ -143,6 +143,32 @@ CREATE TABLE vente_lot (
 GO
 
 -- ============================================================
+-- 3b. TABLE PARAMETRES
+-- ============================================================
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'parametre')
+CREATE TABLE parametre (
+    cle        VARCHAR(100) PRIMARY KEY,
+    valeur     VARCHAR(500) NOT NULL,
+    label      VARCHAR(255) NULL,
+    type_input VARCHAR(20) NOT NULL DEFAULT 'toggle'
+);
+GO
+
+-- ============================================================
+-- 3c. FICHE PAR DÉFAUT (30 semaines)
+-- ============================================================
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'fiche_defaut_row')
+CREATE TABLE fiche_defaut_row (
+    id_row    INT PRIMARY KEY IDENTITY(1,1),
+    semaine   INT NOT NULL,
+    variation FLOAT NOT NULL,
+    poids     FLOAT NOT NULL
+);
+GO
+
+-- ============================================================
 -- 4. TRIGGERS
 -- ============================================================
 

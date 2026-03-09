@@ -55,6 +55,10 @@ export class VentesComponent implements OnInit {
   vpPoidsHint = '';
   vpPoidsUnitaire: number | null = null;
   vpPrixKg: number | null = null;
+  vpSemaine: number | null = null;
+  vpJours: number | null = null;
+  vpVenteAutorisee = true;
+  vpVenteBloqueeRaison: string | null = null;
 
   // Vente lot modal
   showVLModal = false;
@@ -177,14 +181,22 @@ export class VentesComponent implements OnInit {
     if (!this.vpLot || !this.vpDate) return;
     this.api.getPoidsLot(this.vpLot, this.vpDate).subscribe(res => {
       if (res.data) {
-        const poidsFromFiche = res.data.poids_unitaire_kg || 0;
-        const poidsFromVariations = res.data.poids_estim_variation_kg || 0;
-        const chosen = Math.max(poidsFromFiche, poidsFromVariations) || null;
-        this.vpPoidsUnitaire = chosen;
+        this.vpPoidsUnitaire = res.data.poids_unitaire_kg || null;
         this.vpPrixKg = res.data.prix_kg;
-        if (chosen) {
-          const note = poidsFromVariations > poidsFromFiche ? ' (estim. par variations)' : '';
-          this.vpPoidsHint = `(~${chosen.toFixed(2)} kg/poulet)${note}`;
+        this.vpSemaine = res.data.semaine;
+        this.vpJours = res.data.jours_dans_semaine;
+        this.vpVenteAutorisee = res.data.vente_autorisee !== false;
+        this.vpVenteBloqueeRaison = res.data.vente_bloquee_raison || null;
+
+        // Auto-remplir le prix/kg depuis la race
+        if (!this.vpPrix && this.vpPrixKg) {
+          this.vpPrix = this.vpPrixKg;
+        }
+
+        if (this.vpPoidsUnitaire) {
+          const sem = this.vpSemaine || '?';
+          const jStr = this.vpJours ? ` +${this.vpJours}j` : '';
+          this.vpPoidsHint = `(~${this.vpPoidsUnitaire.toFixed(3)} kg/poulet — sem. ${sem}${jStr})`;
         } else {
           this.vpPoidsHint = '(poids fiche non disponible)';
         }
@@ -196,9 +208,8 @@ export class VentesComponent implements OnInit {
   updateVPPoids() {
     const nb = this.vpNb || 0;
     if (nb > 0 && this.vpPoidsUnitaire) {
-      // Preserve high precision for weight: use 12 significant digits
       const raw = nb * this.vpPoidsUnitaire;
-      this.vpPoids = Number(raw.toPrecision(12));
+      this.vpPoids = Math.round(raw * 1000) / 1000; // 3 décimales
     }
     this.updateVPTotal();
   }
@@ -218,6 +229,10 @@ export class VentesComponent implements OnInit {
   }
 
   submitVP() {
+    if (!this.vpVenteAutorisee) {
+      this.toast.show('Vente bloquée : ' + (this.vpVenteBloqueeRaison || 'conditions non remplies'), 'warning');
+      return;
+    }
     if (!this.vpLot || !this.vpDate || !this.vpNb || !this.vpPoids) {
       this.toast.show('Veuillez remplir les champs obligatoires', 'warning'); return;
     }

@@ -100,4 +100,15 @@ export class ApiService {
 
   // Events
   getEvents(from: string, to: string) { return this.get<any[]>(`/events?from=${from}&to=${to}`); }
+
+  // Paramètres
+  getParametres() { return this.get<any[]>('/parametres'); }
+  updateParametre(cle: string, valeur: string) { return this.put<any>(`/parametres/${cle}`, { valeur }); }
+
+  // Fiche par défaut
+  getFicheDefaut() { return this.get<any[]>('/fiche-defaut'); }
+  updateFicheDefautRow(id: number, body: any) { return this.put<any[]>(`/fiche-defaut/${id}`, body); }
+  createFicheDefautRow(body: any) { return this.post<any[]>('/fiche-defaut', body); }
+  deleteFicheDefautRow(id: number) { return this.del<any[]>(`/fiche-defaut/${id}`); }
+  saveFicheDefaut(rows: any[]) { return this.put<any[]>('/fiche-defaut', { rows }); }
 }

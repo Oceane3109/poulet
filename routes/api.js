@@ -357,42 +357,117 @@ router.get('/lots/:id/stock_oeufs', asyncHandler(async (req, res) => {
     res.json({ data: result.recordset[0].stock, error: null });
 }));
 
-// Poids estimé d'un poulet du lot à une date donnée (depuis fiche_row)
+// Poids estimé d'un poulet du lot à une date donnée
+// Calcul : somme des variations de la fiche (+ fiche défaut si active et semaines manquantes)
+//          avec prorata au jour pour la semaine en cours incomplète
+//          arrêt à la semaine configurée si paramètre actif
 router.get('/lots/:id/poids', asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id);
     const date = req.query.date || new Date().toISOString().split('T')[0];
-    const result = await query(`
-        DECLARE @sem INT = dbo.fn_semaine_actuelle(@id, @date);
-        
-        SELECT 
-            @sem AS semaine,
-            dbo.fn_nombre_actuel(@id, @date) AS nombre_actuel,
-            l.id_race,
-            r.prix_kg,
-            (SELECT TOP 1 fr.poids FROM fiche_row fr 
-             WHERE fr.id_fiche = l.id_fiche AND fr.semaine <= @sem 
-             ORDER BY fr.semaine DESC) AS poids_unitaire_g,
-            (SELECT ISNULL(SUM(fr2.variation), 0) FROM fiche_row fr2 
-             WHERE fr2.id_fiche = l.id_fiche AND fr2.semaine <= @sem) AS total_variation_g
-        FROM lot l
-        JOIN race r ON l.id_race = r.id_race
+
+    // 1. Lot info
+    const lotRes = await query(`
+        SELECT l.*, r.prix_kg, r.nom_race
+        FROM lot l JOIN race r ON l.id_race = r.id_race
         WHERE l.id_lot = @id
-    `, { id, date });
-    
-    if (!result.recordset.length) {
+    `, { id });
+    if (!lotRes.recordset.length) {
         return res.json({ data: null, error: 'Lot non trouvé' });
     }
-    
-    const row = result.recordset[0];
-    const poidsUnitaireKg = row.poids_unitaire_g ? row.poids_unitaire_g / 1000 : null;
-    const poidsEstimVariationKg = (row.total_variation_g ? row.total_variation_g / 1000 : null);
+    const lot = lotRes.recordset[0];
+
+    // 2. Paramètres
+    const paramsRes = await query(`SELECT cle, valeur FROM parametre WHERE cle IN ('arret_poids_active','arret_poids_semaine','fiche_defaut_active','limite_vente_active','limite_vente_semaine','limite_vente_poids_kg')`);
+    const params = {};
+    for (const r of paramsRes.recordset) params[r.cle] = r.valeur;
+
+    // 3. Calcul age exact en semaines + jours
+    const dateArrivee = new Date(lot.date_arrivee);
+    const dateVente = new Date(date);
+    const diffMs = dateVente.getTime() - dateArrivee.getTime();
+    const diffDays = Math.max(0, Math.floor(diffMs / 86400000));
+    const semainesEcoulees = Math.floor(diffDays / 7);
+    const joursRestants = diffDays % 7;
+    const semaineCourante = lot.age_arrivee + semainesEcoulees; // semaine complète atteinte
+
+    // 4. Semaine plafond si arrêt poids actif
+    let semainePlafond = 9999;
+    if (params.arret_poids_active === '1') {
+        semainePlafond = parseInt(params.arret_poids_semaine) || 9999;
+    }
+
+    // 5. Récupérer les lignes de la fiche du lot
+    let ficheRows = [];
+    if (lot.id_fiche) {
+        const fRes = await query(`
+            SELECT semaine, variation, poids FROM fiche_row
+            WHERE id_fiche = @fiche ORDER BY semaine
+        `, { fiche: lot.id_fiche });
+        ficheRows = fRes.recordset;
+    }
+
+    // 6. Fiche par défaut si active (combler les semaines manquantes)
+    const ficheDefautActive = params.fiche_defaut_active === '1';
+    let defautRows = [];
+    if (ficheDefautActive) {
+        const dRes = await query(`SELECT semaine, variation, poids FROM fiche_defaut_row ORDER BY semaine`);
+        defautRows = dRes.recordset;
+    }
+
+    // 7. Construire map semaine -> variation (fiche lot prioritaire, défaut en fallback)
+    const variationMap = new Map();
+    for (const dr of defautRows) {
+        variationMap.set(dr.semaine, dr.variation);
+    }
+    // Fiche lot écrase les valeurs par défaut pour les semaines qu'elle couvre
+    for (const fr of ficheRows) {
+        variationMap.set(fr.semaine, fr.variation);
+    }
+
+    // 8. Calcul du poids : somme des variations semaine par semaine
+    //    La fiche du lot est indexée par "semaine" (1, 2, 3...) = numéro de semaine dans la fiche
+    //    Mais l'âge du lot commence à age_arrivee. On doit mapper :
+    //      semaine fiche 1 → première semaine après arrivée
+    //      etc.
+    let totalVariationG = 0;
+    const nbSemainesCompletes = Math.min(semainesEcoulees, semainePlafond - lot.age_arrivee);
+
+    for (let s = 1; s <= nbSemainesCompletes; s++) {
+        const v = variationMap.get(s) || 0;
+        totalVariationG += v;
+    }
+
+    // Prorata pour la semaine en cours (incomplète) si on n'a pas atteint le plafond
+    const semaineFicheEnCours = nbSemainesCompletes + 1;
+    if (joursRestants > 0 && (lot.age_arrivee + nbSemainesCompletes) < semainePlafond) {
+        const vCourante = variationMap.get(semaineFicheEnCours) || 0;
+        totalVariationG += vCourante * (joursRestants / 7);
+    }
+
+    const poidsEstimKg = totalVariationG / 1000;
+
+    // 9. Vérification limitation de vente
+    let venteAutorisee = true;
+    let venteBloqueeRaison = null;
+    if (params.limite_vente_active === '1') {
+        const limSem = parseInt(params.limite_vente_semaine) || 0;
+        const limPoids = parseFloat(params.limite_vente_poids_kg) || 0;
+        if (semaineCourante < limSem && poidsEstimKg < limPoids) {
+            venteAutorisee = false;
+            venteBloqueeRaison = `Semaine ${semaineCourante} < ${limSem} et poids ${poidsEstimKg.toFixed(3)} kg < ${limPoids} kg`;
+        }
+    }
+
+    const nombreActuel = await query('SELECT dbo.fn_nombre_actuel(@id, @date) AS n', { id, date });
 
     res.json({ data: {
-        semaine: row.semaine,
-        nombre_actuel: row.nombre_actuel,
-        poids_unitaire_kg: poidsUnitaireKg,
-        poids_estim_variation_kg: poidsEstimVariationKg,
-        prix_kg: row.prix_kg
+        semaine: semaineCourante,
+        jours_dans_semaine: joursRestants,
+        nombre_actuel: nombreActuel.recordset[0].n,
+        poids_unitaire_kg: poidsEstimKg,
+        prix_kg: lot.prix_kg,
+        vente_autorisee: venteAutorisee,
+        vente_bloquee_raison: venteBloqueeRaison
     }, error: null });
 }));
 
@@ -678,6 +753,79 @@ router.post('/couvaisons/:id/eclore', asyncHandler(async (req, res) => {
         await transaction.rollback();
         res.status(500).json({ data: null, error: 'Erreur lors de l\'éclosion: ' + err.message });
     }
+}));
+
+// ============================================================
+// PARAMETRES
+// ============================================================
+
+router.get('/parametres', asyncHandler(async (req, res) => {
+    const result = await query('SELECT * FROM parametre ORDER BY cle');
+    res.json({ data: result.recordset, error: null });
+}));
+
+router.put('/parametres/:cle', asyncHandler(async (req, res) => {
+    const cle = req.params.cle;
+    const { valeur } = req.body;
+    if (valeur == null) {
+        return res.status(400).json({ data: null, error: 'valeur requise' });
+    }
+    await query('UPDATE parametre SET valeur = @valeur WHERE cle = @cle', { cle, valeur: String(valeur) });
+    const result = await query('SELECT * FROM parametre WHERE cle = @cle', { cle });
+    res.json({ data: result.recordset[0] || null, error: null });
+}));
+
+// Fiche par défaut
+router.get('/fiche-defaut', asyncHandler(async (req, res) => {
+    const result = await query('SELECT * FROM fiche_defaut_row ORDER BY semaine');
+    res.json({ data: result.recordset, error: null });
+}));
+
+// Mettre à jour une ligne de la fiche par défaut
+router.put('/fiche-defaut/:id', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { semaine, variation, poids } = req.body;
+    if (semaine == null || variation == null || poids == null) {
+        return res.status(400).json({ data: null, error: 'semaine, variation et poids requis' });
+    }
+    await query('UPDATE fiche_defaut_row SET semaine=@semaine, variation=@variation, poids=@poids WHERE id_row=@id', { id, semaine, variation, poids });
+    const result = await query('SELECT * FROM fiche_defaut_row ORDER BY semaine');
+    res.json({ data: result.recordset, error: null });
+}));
+
+// Ajouter une ligne à la fiche par défaut
+router.post('/fiche-defaut', asyncHandler(async (req, res) => {
+    const { semaine, variation, poids } = req.body;
+    if (semaine == null || variation == null || poids == null) {
+        return res.status(400).json({ data: null, error: 'semaine, variation et poids requis' });
+    }
+    await query('INSERT INTO fiche_defaut_row (semaine, variation, poids) VALUES (@semaine, @variation, @poids)', { semaine, variation, poids });
+    const result = await query('SELECT * FROM fiche_defaut_row ORDER BY semaine');
+    res.json({ data: result.recordset, error: null });
+}));
+
+// Supprimer une ligne de la fiche par défaut
+router.delete('/fiche-defaut/:id', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    await query('DELETE FROM fiche_defaut_row WHERE id_row=@id', { id });
+    const result = await query('SELECT * FROM fiche_defaut_row ORDER BY semaine');
+    res.json({ data: result.recordset, error: null });
+}));
+
+// Sauvegarder toute la fiche par défaut (remplacement complet)
+router.put('/fiche-defaut', asyncHandler(async (req, res) => {
+    const { rows } = req.body;
+    if (!Array.isArray(rows)) {
+        return res.status(400).json({ data: null, error: 'rows (tableau) requis' });
+    }
+    await query('DELETE FROM fiche_defaut_row');
+    for (const r of rows) {
+        await query('INSERT INTO fiche_defaut_row (semaine, variation, poids) VALUES (@semaine, @variation, @poids)', {
+            semaine: r.semaine, variation: r.variation, poids: r.poids
+        });
+    }
+    const result = await query('SELECT * FROM fiche_defaut_row ORDER BY semaine');
+    res.json({ data: result.recordset, error: null });
 }));
 
 // Error handler

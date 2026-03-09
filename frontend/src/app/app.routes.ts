@@ -13,4 +13,5 @@ export const routes: Routes = [
   { path: 'races', loadComponent: () => import('./pages/races/races.component').then(m => m.RacesComponent) },
   { path: 'nourriture', loadComponent: () => import('./pages/nourriture/nourriture.component').then(m => m.NourritureComponent) },
   { path: 'calendrier', loadComponent: () => import('./pages/calendrier/calendrier.component').then(m => m.CalendrierComponent) },
+  { path: 'parametres', loadComponent: () => import('./pages/parametres/parametres.component').then(m => m.ParametresComponent) },
 ];
