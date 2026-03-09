@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKOHO — Lots</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="partial-aside"></aside>
+        <div class="app-main">
+            <header class="app-header" id="partial-header"></header>
+            <main class="app-content">
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                    <h1 style="font-size:22px;font-weight:700;">Lots</h1>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> Nouveau lot
+                    </button>
+                </div>
+
+                <!-- Filtres -->
+                <div class="card mb-20" style="padding:16px 20px;">
+                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <div class="header-search" style="flex:1;min-width:200px;">
+                            <i class="bi bi-search"></i>
+                            <input type="text" placeholder="Rechercher un lot..." id="filter-search" oninput="filterLots()">
+                        </div>
+                        <select class="form-select" style="width:180px;" id="filter-race" onchange="filterLots()">
+                            <option value="">Toutes les races</option>
+                        </select>
+                        <select class="form-select" style="width:160px;" id="filter-origine" onchange="filterLots()">
+                            <option value="">Toute origine</option>
+                            <option value="achat">Achat</option>
+                            <option value="couvaison">Couvaison</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tableau -->
+                <div class="table-card">
+                    <div style="overflow-x:auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Race</th>
+                                    <th class="text-center">Nombre</th>
+                                    <th class="text-center">Âge arrivée</th>
+                                    <th>Date arrivée</th>
+                                    <th>Origine</th>
+                                    <th>Fiche</th>
+                                    <th class="text-end">Prix achat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lots-table-body">
+                                <tr><td colspan="8" class="text-center text-muted" style="padding:32px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+            <footer class="app-footer" id="partial-footer"></footer>
+        </div>
+    </div>
+
+    <!-- Modal création lot -->
+    <div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;overflow-y:auto;">
+        <div style="max-width:700px;margin:40px auto;background:white;border-radius:var(--radius);box-shadow:var(--shadow-lg);">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouveau lot</h5>
+                <button class="btn-icon" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <!-- Stepper -->
+            <div style="padding:20px 24px 0;">
+                <div class="stepper" id="stepper">
+                    <div class="stepper-step active" id="step-1"><div class="stepper-number">1</div><span>Informations</span></div>
+                    <div class="stepper-line"></div>
+                    <div class="stepper-step" id="step-2"><div class="stepper-number">2</div><span>Fiche</span></div>
+                    <div class="stepper-line"></div>
+                    <div class="stepper-step" id="step-3"><div class="stepper-number">3</div><span>Récapitulatif</span></div>
+                </div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="modal-body" id="panel-1">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div>
+                        <label class="form-label">Nom du lot *</label>
+                        <input type="text" class="form-control" id="lot-nom" placeholder="ex: LOT4">
+                    </div>
+                    <div>
+                        <label class="form-label">Race *</label>
+                        <select class="form-select" id="lot-race"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Nombre de poules *</label>
+                        <input type="number" class="form-control" id="lot-nombre" min="1">
+                    </div>
+                    <div>
+                        <label class="form-label">Âge à l'arrivée (semaines) *</label>
+                        <input type="number" class="form-control" id="lot-age" min="1" value="1">
+                    </div>
+                    <div>
+                        <label class="form-label">Date d'arrivée *</label>
+                        <input type="date" class="form-control" id="lot-date">
+                    </div>
+                    <div>
+                        <label class="form-label">Origine *</label>
+                        <select class="form-select" id="lot-origine" onchange="toggleOrigine()">
+                            <option value="achat">Achat</option>
+                            <option value="couvaison">Couvaison</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Prix d'achat (Ar)</label>
+                        <input type="number" class="form-control" id="lot-prix" value="0" min="0">
+                    </div>
+                    <div id="lot-mere-group" style="display:none;">
+                        <label class="form-label">Lot mère *</label>
+                        <select class="form-select" id="lot-mere"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="modal-body" id="panel-2" style="display:none;">
+                <p class="text-muted mb-16">Optionnel — vous pouvez ajouter la fiche de croissance plus tard.</p>
+                <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-outline fiche-src active" data-src="manual" onclick="switchFicheSrc('manual')">Saisie manuelle</button>
+                    <button class="btn btn-sm btn-outline fiche-src" data-src="existing" onclick="switchFicheSrc('existing')">Fiche existante</button>
+                    <button class="btn btn-sm btn-outline fiche-src" data-src="default" onclick="switchFicheSrc('default')">Fiche par défaut</button>
+                </div>
+
+                <div id="fiche-manual">
+                    <table class="table mb-16" id="fiche-table">
+                        <thead><tr><th>Semaine</th><th>Âge</th><th>Nourriture</th><th>Quantité (g)</th><th>Variation (g)</th><th></th></tr></thead>
+                        <tbody id="fiche-rows"></tbody>
+                    </table>
+                    <div style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:8px;align-items:end;">
+                        <div><label class="form-label fs-sm">Semaine</label><input type="text" class="form-control" id="fiche-sem" readonly></div>
+                        <div><label class="form-label fs-sm">Âge</label><input type="text" class="form-control" id="fiche-age" readonly></div>
+                        <div><label class="form-label fs-sm">Nourriture</label><select class="form-select" id="fiche-nourr"></select></div>
+                        <div><label class="form-label fs-sm">Quantité (g)</label><input type="number" class="form-control" id="fiche-poids" min="1"></div>
+                        <div><label class="form-label fs-sm">Variation (g)</label><input type="number" class="form-control" id="fiche-var" min="0"></div>
+                        <button class="btn btn-primary" style="height:40px;" onclick="addFicheRow()"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+
+                <div id="fiche-existing" style="display:none;">
+                    <select class="form-select mb-16" id="fiche-select" onchange="loadExistingFiche()">
+                        <option value="">Choisir une fiche existante...</option>
+                    </select>
+                    <div id="fiche-preview"></div>
+                </div>
+
+                <div id="fiche-default" style="display:none;">
+                    <p class="text-muted">La fiche par défaut de la race sélectionnée sera chargée automatiquement.</p>
+                    <div id="fiche-default-preview"></div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="modal-body" id="panel-3" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <div>
+                        <h6 style="font-weight:600;margin-bottom:12px;">Informations du lot</h6>
+                        <div id="recap-info"></div>
+                    </div>
+                    <div>
+                        <h6 style="font-weight:600;margin-bottom:12px;">Fiche de croissance</h6>
+                        <div id="recap-fiche"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display:flex;justify-content:space-between;">
+                <div id="modal-error" style="color:var(--danger);font-size:13px;"></div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-outline" id="btn-prev" style="display:none;" onclick="prevStep()">Précédent</button>
+                    <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Suivant</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/lots.js"></script>
+</body>
+</html>

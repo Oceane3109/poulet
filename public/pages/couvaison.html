@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKOHO — Couvaison</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="partial-aside"></aside>
+        <div class="app-main">
+            <header class="app-header" id="partial-header"></header>
+            <main class="app-content">
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                    <h1 style="font-size:22px;font-weight:700;">Couvaison</h1>
+                    <button class="btn btn-primary" onclick="openNewModal()">
+                        <i class="bi bi-plus-lg"></i> Nouvelle couvaison
+                    </button>
+                </div>
+
+                <!-- KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card kpi-warning">
+                        <div class="kpi-icon"><i class="bi bi-thermometer-half"></i></div>
+                        <div class="kpi-value" id="kpi-encours">-</div>
+                        <div class="kpi-label">En cours</div>
+                    </div>
+                    <div class="kpi-card kpi-danger">
+                        <div class="kpi-icon"><i class="bi bi-alarm"></i></div>
+                        <div class="kpi-value" id="kpi-imminente">-</div>
+                        <div class="kpi-label">Éclosion &lt; 5 jours</div>
+                    </div>
+                    <div class="kpi-card kpi-success">
+                        <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+                        <div class="kpi-value" id="kpi-terminees">-</div>
+                        <div class="kpi-label">Terminées</div>
+                    </div>
+                    <div class="kpi-card kpi-primary">
+                        <div class="kpi-icon"><i class="bi bi-egg"></i></div>
+                        <div class="kpi-value" id="kpi-total-oeufs">-</div>
+                        <div class="kpi-label">Total œufs couvés</div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-20" style="padding:16px 20px;">
+                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <select class="form-select" style="width:200px;" id="filter-lot" onchange="renderFiltered()">
+                            <option value="">Tous les lots mères</option>
+                        </select>
+                        <select class="form-select" style="width:200px;" id="filter-status" onchange="renderFiltered()">
+                            <option value="">Tous les statuts</option>
+                            <option value="active">En cours</option>
+                            <option value="done">Terminée</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="clearCouvFilters()">Réinitialiser</button>
+                    </div>
+                </div>
+
+                <!-- Active couvaisons -->
+                <div class="table-card mb-20">
+                    <div class="card-header">
+                        <span>Couvaisons actives</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Lot mère</th>
+                                    <th>Mise en couvaison</th>
+                                    <th class="text-center">Nb œufs</th>
+                                    <th>Éclosion prévue</th>
+                                    <th>Progression</th>
+                                    <th class="text-center">Jours restants</th>
+                                    <th style="width:100px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-tbody">
+                                <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="table-card">
+                    <div class="card-header">
+                        <span>Historique des éclosions</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Lot mère</th>
+                                    <th>Date mise</th>
+                                    <th class="text-center">Œufs</th>
+                                    <th class="text-center">Éclos</th>
+                                    <th class="text-center">Taux</th>
+                                    <th>Lot né</th>
+                                    <th>Date éclosion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-tbody">
+                                <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+            <footer class="app-footer" id="partial-footer"></footer>
+        </div>
+    </div>
+
+    <!-- New couvaison modal -->
+    <div id="modal-new" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;">
+        <div style="max-width:440px;margin:100px auto;background:white;border-radius:var(--radius);box-shadow:var(--shadow-lg);">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle couvaison</h5>
+                <button class="btn-icon" onclick="closeNewModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid;gap:16px;">
+                    <div>
+                        <label class="form-label">Lot mère *</label>
+                        <select class="form-select" id="new-lot"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Date de mise en couvaison *</label>
+                        <input type="date" class="form-control" id="new-date">
+                    </div>
+                    <div>
+                        <label class="form-label">Nombre d'œufs *</label>
+                        <input type="number" class="form-control" id="new-nb" min="1">
+                    </div>
+                    <div class="text-muted" style="font-size:13px;" id="new-preview">
+                        Éclosion prévue : —
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+                <button class="btn btn-outline" onclick="closeNewModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="submitNew()">Lancer la couvaison</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eclosion modal -->
+    <div id="modal-eclore" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;">
+        <div style="max-width:440px;margin:100px auto;background:white;border-radius:var(--radius);box-shadow:var(--shadow-lg);">
+            <div class="modal-header">
+                <h5 class="modal-title">Enregistrer l'éclosion</h5>
+                <button class="btn-icon" onclick="closeEcloreModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid;gap:16px;">
+                    <div class="text-muted" style="font-size:13px;" id="eclore-info"></div>
+                    <div>
+                        <label class="form-label">Nombre de poussins éclos *</label>
+                        <input type="number" class="form-control" id="eclore-nb" min="1">
+                    </div>
+                    <div>
+                        <label class="form-label">Nom du nouveau lot *</label>
+                        <input type="text" class="form-control" id="eclore-nom" placeholder="ex: LOT4">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+                <button class="btn btn-outline" onclick="closeEcloreModal()">Annuler</button>
+                <button class="btn btn-success" onclick="submitEclore()">Valider l'éclosion</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/couvaison.js"></script>
+</body>
+</html>

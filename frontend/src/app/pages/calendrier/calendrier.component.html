@@ -1,0 +1,137 @@
+<!-- Title + nav -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+  <h1 style="font-size:22px;font-weight:700;">Calendrier</h1>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="btn btn-outline btn-sm" (click)="prevMonth()"><i class="bi bi-chevron-left"></i></button>
+    <span style="font-weight:600;font-size:16px;min-width:180px;text-align:center;">{{ monthLabel }}</span>
+    <button class="btn btn-outline btn-sm" (click)="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+    <button class="btn btn-outline btn-sm" (click)="goToday()" style="margin-left:8px;">Aujourd'hui</button>
+  </div>
+</div>
+
+<!-- Toolbar: date range + event type toggles -->
+<div class="card mb-20" style="padding:16px 24px;">
+  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+    <!-- Date range -->
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label style="font-size:13px;font-weight:600;white-space:nowrap;">Plage :</label>
+      <input type="date" class="form-control" [(ngModel)]="rangeFrom" style="width:160px;font-size:13px;">
+      <span style="color:var(--muted);">→</span>
+      <input type="date" class="form-control" [(ngModel)]="rangeTo" style="width:160px;font-size:13px;">
+      <button class="btn btn-primary btn-sm" (click)="loadRange()">Afficher</button>
+      <button class="btn btn-outline btn-sm" (click)="clearRange()">Réinitialiser</button>
+    </div>
+
+    <div style="width:1px;height:28px;background:var(--border);"></div>
+
+    <!-- Event type toggles -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:13px;font-weight:600;white-space:nowrap;">Afficher :</label>
+      <label class="evt-toggle" style="--clr:#22C55E; --clr-rgb:34,197,94;" [class.checked]="toggleProduction">
+        <input type="checkbox" [(ngModel)]="toggleProduction" (change)="onToggleFilter()" hidden>
+        <span class="cal-dot" style="background:#22C55E;"></span> Production
+      </label>
+      <label class="evt-toggle" style="--clr:#EF4444; --clr-rgb:239,68,68;" [class.checked]="togglePerte">
+        <input type="checkbox" [(ngModel)]="togglePerte" (change)="onToggleFilter()" hidden>
+        <span class="cal-dot" style="background:#EF4444;"></span> Pertes
+      </label>
+      <label class="evt-toggle" style="--clr:#3B82F6; --clr-rgb:59,130,246;" [class.checked]="toggleVente">
+        <input type="checkbox" [(ngModel)]="toggleVente" (change)="onToggleFilter()" hidden>
+        <span class="cal-dot" style="background:#3B82F6;"></span> Ventes
+      </label>
+      <label class="evt-toggle" style="--clr:#F59E0B; --clr-rgb:245,158,11;" [class.checked]="toggleCouvaison">
+        <input type="checkbox" [(ngModel)]="toggleCouvaison" (change)="onToggleFilter()" hidden>
+        <span class="cal-dot" style="background:#F59E0B;"></span> Couvaison
+      </label>
+      <label class="evt-toggle" style="--clr:#8B5CF6; --clr-rgb:139,92,246;" [class.checked]="toggleEclosion">
+        <input type="checkbox" [(ngModel)]="toggleEclosion" (change)="onToggleFilter()" hidden>
+        <span class="cal-dot" style="background:#8B5CF6;"></span> Éclosion
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar grid -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="cal-header">
+    <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div>
+  </div>
+  <div class="cal-grid">
+    @for (cell of cells; track cell.dateStr) {
+      <div class="cal-cell"
+           [class.other-month]="!cell.isCurrentMonth"
+           [class.today]="cell.isToday"
+           [class.in-range]="cell.rangeClass === 'in-range'"
+           [class.range-start]="cell.rangeClass === 'range-start'"
+           [class.range-end]="cell.rangeClass === 'range-end'"
+           (click)="showDay(cell.dateStr)">
+        <div class="cal-day">{{ cell.day }}</div>
+        <div class="cal-dots">
+          @for (dot of cell.dots; track dot.label) {
+            <span class="cal-dot" [style.background]="dot.color" [title]="dot.label"></span>
+          }
+        </div>
+        @if (cell.summary) {
+          <div class="cal-summary">{{ cell.summary }}</div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Day / range detail -->
+@if (showDetail) {
+  <div class="card mt-20">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0;">
+      <h3 style="font-size:17px;font-weight:600;">{{ detailTitle }}</h3>
+      <button class="btn-icon" (click)="closeDetail()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div style="padding:8px 24px 24px;">
+      <!-- Grouped (range mode) -->
+      @if (detailGrouped.length) {
+        @for (group of detailGrouped; track group.dateLabel) {
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:16px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--border);">
+            {{ group.dateLabel }}
+          </div>
+          @for (e of group.events; track $index) {
+            <ng-container *ngTemplateOutlet="eventRow; context: { $implicit: e }"></ng-container>
+          }
+        }
+      }
+      <!-- Non-grouped (day mode) -->
+      @if (!detailGrouped.length && detailEvents.length) {
+        @for (e of detailEvents; track $index) {
+          <ng-container *ngTemplateOutlet="eventRow; context: { $implicit: e }"></ng-container>
+        }
+      }
+      @if (!detailEvents.length) {
+        <p class="text-muted" style="padding:16px 0;">Aucun événement ce jour.</p>
+      }
+    </div>
+  </div>
+}
+
+<!-- Event row template -->
+<ng-template #eventRow let-e>
+  <div (click)="onEventClick(e.type, e.date?.substring(0,10))"
+       style="cursor:pointer;display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+    <div [style.background]="(eventColors[e.type] || '#94A3B8') + '15'"
+         style="min-width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <i class="bi" [ngClass]="eventIcons[e.type] || 'bi-circle'" [style.color]="eventColors[e.type] || '#94A3B8'" style="font-size:16px;"></i>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="badge" [style.background]="(eventColors[e.type] || '#94A3B8') + '20'" [style.color]="eventColors[e.type] || '#94A3B8'" style="font-size:12px;font-weight:600;">
+          {{ eventLabels[e.type] || e.type }}
+        </span>
+        @if (e.lot) {
+          <span style="font-size:13px;font-weight:600;color:var(--text);">{{ e.lot }}</span>
+        }
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;">{{ e.detail || '' }}</div>
+    </div>
+    @if (e.value) {
+      <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;">{{ e.value | formatNumber }}</div>
+    }
+  </div>
+</ng-template>

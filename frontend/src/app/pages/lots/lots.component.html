@@ -1,0 +1,247 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Lots</h1>
+  <button class="btn btn-primary" (click)="openModal()"><i class="bi bi-plus-lg"></i> Nouveau lot</button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <input type="text" class="form-control" style="width:250px;" placeholder="Rechercher un lot..." [(ngModel)]="filterSearch" (input)="applyFilters()">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterRace" (change)="applyFilters()">
+      <option value="">Toutes les races</option>
+      @for (r of races; track r.id_race) { <option [value]="r.id_race">{{ r.nom_race }}</option> }
+    </select>
+    <select class="form-select" style="width:180px;" [(ngModel)]="filterOrigine" (change)="applyFilters()">
+      <option value="">Toutes origines</option>
+      <option value="achat">Achat</option>
+      <option value="couvaison">Couvaison</option>
+    </select>
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Race</th>
+          <th class="text-center">Nombre</th>
+          <th class="text-center">Âge arrivée</th>
+          <th>Origine</th>
+          <th class="text-end">Prix achat</th>
+          <th>Date arrivée</th>
+          <th>Fiche</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (lot of filteredLots; track lot.id_lot) {
+          <tr>
+            <td><strong>{{ lot.nom_lot }}</strong></td>
+            <td>{{ lot.nom_race || '—' }}</td>
+            <td class="text-center">{{ lot.nombre | formatNumber }}</td>
+            <td class="text-center"><span class="badge badge-primary">S{{ lot.age_arrivee }}</span></td>
+            <td><span class="badge" [ngClass]="lot.origine === 'achat' ? 'badge-info' : 'badge-warning'">{{ lot.origine === 'achat' ? '🛒 Achat' : '🥚 Couvaison' }}</span></td>
+            <td class="text-end">{{ lot.prix_achat | formatAr }}</td>
+            <td>{{ lot.date_arrivee | formatDate }}</td>
+            <td>{{ lot.fiche_label || '—' }}</td>
+          </tr>
+        }
+        @if (!filteredLots.length) {
+          <tr><td colspan="8" class="text-center text-muted" style="padding:32px;"><i class="bi bi-collection" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucun lot</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal stepper -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" style="max-width:700px;width:100%;" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h5 class="modal-title">Nouveau lot</h5>
+        <button class="btn-icon" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <!-- Stepper -->
+      <div style="padding:20px 24px 0;">
+        <div class="stepper">
+          <div class="stepper-step" [class.active]="step === 1" [class.completed]="step > 1">
+            <div class="stepper-number">{{ step > 1 ? '✓' : '1' }}</div> Informations
+          </div>
+          <div class="stepper-line" [class.completed]="step > 1"></div>
+          <div class="stepper-step" [class.active]="step === 2" [class.completed]="step > 2">
+            <div class="stepper-number">{{ step > 2 ? '✓' : '2' }}</div> Fiche
+          </div>
+          <div class="stepper-line" [class.completed]="step > 2"></div>
+          <div class="stepper-step" [class.active]="step === 3">
+            <div class="stepper-number">3</div> Récapitulatif
+          </div>
+        </div>
+      </div>
+
+      @if (modalError) {
+        <div style="padding:12px 24px 0;"><div style="background:#FEF2F2;color:#DC2626;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;">{{ modalError }}</div></div>
+      }
+      <div class="modal-body">
+        <!-- Step 1 -->
+        @if (step === 1) {
+          <div style="display:grid;gap:16px;">
+            <div><label class="form-label">Nom du lot *</label><input type="text" class="form-control" [(ngModel)]="newLot.nom_lot" placeholder="ex: LOT1"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><label class="form-label">Race *</label>
+                <select class="form-select" [(ngModel)]="newLot.id_race">
+                  @for (r of races; track r.id_race) { <option [ngValue]="r.id_race">{{ r.nom_race }}</option> }
+                </select>
+              </div>
+              <div><label class="form-label">Nombre *</label><input type="number" class="form-control" [(ngModel)]="newLot.nombre" min="1"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><label class="form-label">Âge d'arrivée (semaines) *</label><input type="number" class="form-control" [(ngModel)]="newLot.age_arrivee" min="1"></div>
+              <div><label class="form-label">Date d'arrivée *</label><input type="date" class="form-control" [(ngModel)]="newLot.date_arrivee"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><label class="form-label">Origine</label>
+                <select class="form-select" [(ngModel)]="newLot.origine">
+                  <option value="achat">Achat</option>
+                  <option value="couvaison">Couvaison</option>
+                </select>
+              </div>
+              <div><label class="form-label">Prix d'achat (Ar)</label><input type="number" class="form-control" [(ngModel)]="newLot.prix_achat" min="0"></div>
+            </div>
+          </div>
+        }
+
+        <!-- Step 2 -->
+        @if (step === 2) {
+          <div style="display:grid;gap:16px;">
+            <div style="display:flex;gap:12px;">
+              <button class="btn" [class.btn-primary]="ficheMode === 'default'" [class.btn-outline]="ficheMode !== 'default'" (click)="ficheMode = 'default'">Fiche par défaut</button>
+              <button class="btn" [class.btn-primary]="ficheMode === 'existing'" [class.btn-outline]="ficheMode !== 'existing'" (click)="ficheMode = 'existing'">Fiche existante</button>
+              <button class="btn" [class.btn-primary]="ficheMode === 'manual'" [class.btn-outline]="ficheMode !== 'manual'" (click)="ficheMode = 'manual'">Manuelle</button>
+            </div>
+
+            @if (ficheMode === 'default') {
+              <p class="text-muted">La fiche par défaut de la race sélectionnée sera chargée automatiquement.</p>
+            }
+
+            @if (ficheMode === 'existing') {
+              <select class="form-select" [(ngModel)]="selectedFicheId">
+                <option [ngValue]="null">Choisir une fiche existante...</option>
+                @for (f of fiches; track f.id_fiche) {
+                  <option [ngValue]="f.id_fiche">{{ f.label || (f.nom_race + ' — ' + f.type) }} ({{ f.nb_semaines }}S)</option>
+                }
+              </select>
+            }
+
+            @if (ficheMode === 'manual') {
+              <div style="overflow-x:auto;max-height:250px;">
+                <table class="table" style="font-size:13px;">
+                  <thead><tr><th>Semaine</th><th>Âge</th><th>Nourriture</th><th>Quantité (g)</th><th>Variation (g)</th><th></th></tr></thead>
+                  <tbody>
+                    @for (row of manualRows; track $index; let last = $last) {
+                      <tr>
+                        <td>S{{ row.semaine }}</td><td>{{ row.age }}</td>
+                        <td>{{ getNourritureName(row.id_nourriture) }}</td>
+                        <td>{{ row.poids }} g</td><td>{{ row.variation }} g</td>
+                        <td>
+                          @if (last) {
+                            <button class="btn btn-sm btn-danger" (click)="removeManualRow($index)"><i class="bi bi-trash"></i></button>
+                          } @else {
+                            <i class="bi bi-lock text-muted"></i>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @if (!manualRows.length) {
+                      <tr><td colspan="6" class="text-center text-muted" style="padding:16px;">Aucune semaine ajoutée</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <i class="bi bi-arrow-right" style="color:var(--primary);"></i>
+                <span class="text-muted" style="font-size:13px;">Prochaine : <strong>S{{ getNextManualSem() }}</strong> (âge {{ getNextManualAge() }})</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:end;">
+                <div style="flex:1;">
+                  <label class="form-label fs-sm">Nourriture</label>
+                  <select class="form-select" [(ngModel)]="addNourr">
+                    @for (n of nourriture; track n.id_nourriture) { <option [ngValue]="n.id_nourriture">{{ n.nom_nourriture }}</option> }
+                  </select>
+                </div>
+                <div style="width:100px;">
+                  <label class="form-label fs-sm">Qté (g)</label>
+                  <input type="number" class="form-control" [(ngModel)]="addPoids" min="1" placeholder="g">
+                </div>
+                <div style="width:100px;">
+                  <label class="form-label fs-sm">Var. (g)</label>
+                  <input type="number" class="form-control" [(ngModel)]="addVar" min="0" placeholder="0">
+                </div>
+                <button class="btn btn-primary" style="height:40px;" (click)="addManualRow()"><i class="bi bi-plus"></i></button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Step 3 -->
+        @if (step === 3) {
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+            <div>
+              <h6 style="font-weight:600;margin-bottom:12px;">Informations du lot</h6>
+              <table style="font-size:13px;width:100%;">
+                <tr><td class="text-muted" style="padding:4px 8px;">Nom</td><td style="padding:4px 8px;font-weight:600;">{{ newLot.nom_lot }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Race</td><td style="padding:4px 8px;">{{ getRaceName(newLot.id_race) }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Nombre</td><td style="padding:4px 8px;">{{ newLot.nombre }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Âge arrivée</td><td style="padding:4px 8px;">S{{ newLot.age_arrivee }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Date</td><td style="padding:4px 8px;">{{ newLot.date_arrivee | formatDate }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Origine</td><td style="padding:4px 8px;">{{ newLot.origine === 'achat' ? '🛒 Achat' : '🥚 Couvaison' }}</td></tr>
+                <tr><td class="text-muted" style="padding:4px 8px;">Prix achat</td><td style="padding:4px 8px;">{{ newLot.prix_achat | formatAr }}</td></tr>
+              </table>
+            </div>
+            <div>
+              <h6 style="font-weight:600;margin-bottom:12px;">Fiche de croissance</h6>
+              @if (ficheMode === 'default') {
+                <p class="text-muted">Fiche par défaut de la race</p>
+              }
+              @if (ficheMode === 'existing' && selectedFicheId) {
+                <p class="text-muted">Fiche existante sélectionnée</p>
+              }
+              @if (ficheMode === 'manual' && manualRows.length) {
+                <p style="margin-bottom:8px;">{{ manualRows.length }} semaines</p>
+                <div style="max-height:200px;overflow-y:auto;">
+                  <table class="table" style="font-size:13px;">
+                    <thead><tr><th>S</th><th>Âge</th><th>Nourriture</th><th>Qté</th></tr></thead>
+                    <tbody>
+                      @for (row of manualRows; track $index) {
+                        <tr><td>S{{ row.semaine }}</td><td>{{ row.age }}</td><td>{{ getNourritureName(row.id_nourriture) }}</td><td>{{ row.poids }}g</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @if (ficheMode === 'manual' && !manualRows.length) {
+                <p class="text-muted">Aucune semaine ajoutée (fiche par défaut)</p>
+              }
+              @if (ficheMode === 'existing' && !selectedFicheId) {
+                <p class="text-muted">Aucune fiche sélectionnée (fiche par défaut)</p>
+              }
+            </div>
+          </div>
+          <div style="padding:16px;background:var(--bg);border-radius:var(--radius-sm);font-size:14px;margin-top:16px;">
+            <strong>Coût total :</strong> {{ (newLot.nombre || 0) * (newLot.prix_achat || 0) | formatAr }}
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        @if (step > 1) { <button class="btn btn-outline" (click)="prevStep()">Retour</button> }
+        @if (step < 3) { <button class="btn btn-primary" (click)="nextStep()">Suivant</button> }
+        @if (step === 3) { <button class="btn btn-success" (click)="createLot()"><i class="bi bi-check-lg"></i> Créer le lot</button> }
+      </div>
+    </div>
+  </div>
+}

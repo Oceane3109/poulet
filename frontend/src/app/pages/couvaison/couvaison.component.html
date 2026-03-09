@@ -1,0 +1,132 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Couvaison</h1>
+  <button class="btn btn-primary" (click)="openNewModal()"><i class="bi bi-plus-lg"></i> Nouvelle couvaison</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-warning"><div class="kpi-icon"><i class="bi bi-thermometer-half"></i></div><div class="kpi-value">{{ kpiEncours }}</div><div class="kpi-label">En cours</div></div>
+  <div class="kpi-card kpi-danger"><div class="kpi-icon"><i class="bi bi-alarm"></i></div><div class="kpi-value">{{ kpiImminente }}</div><div class="kpi-label">Éclosion &lt; 5 jours</div></div>
+  <div class="kpi-card kpi-success"><div class="kpi-icon"><i class="bi bi-check-circle"></i></div><div class="kpi-value">{{ kpiTerminees }}</div><div class="kpi-label">Terminées</div></div>
+  <div class="kpi-card kpi-primary"><div class="kpi-icon"><i class="bi bi-egg"></i></div><div class="kpi-value">{{ kpiTotalOeufs | formatNumber }}</div><div class="kpi-label">Total œufs couvés</div></div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterLot" (change)="renderFiltered()">
+      <option value="">Tous les lots mères</option>
+      @for (lot of lots; track lot.id_lot) { <option [value]="lot.id_lot">{{ lot.nom_lot }}</option> }
+    </select>
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterStatus" (change)="renderFiltered()">
+      <option value="">Tous les statuts</option>
+      <option value="active">En cours</option>
+      <option value="done">Terminée</option>
+    </select>
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Active couvaisons -->
+<div class="table-card mb-20">
+  <div class="card-header"><span>Couvaisons actives</span></div>
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Lot mère</th><th>Mise en couvaison</th><th class="text-center">Nb œufs</th><th>Éclosion prévue</th><th>Progression</th><th class="text-center">Jours restants</th><th style="width:100px;"></th></tr>
+      </thead>
+      <tbody>
+        @for (c of activeList; track c.id_couvaison) {
+          <tr>
+            <td><strong>{{ getLotName(c.id_lot_mere) }}</strong></td>
+            <td>{{ c.date_mise_couvaison | formatDate }}</td>
+            <td class="text-center">{{ c.nb_oeufs_couves }}</td>
+            <td>{{ c.date_eclosion | formatDate }}</td>
+            <td style="min-width:140px;">
+              <div class="progress"><div class="progress-bar" [class.bg-danger]="isUrgent(c)" [style.width.%]="getProgress(c)"></div></div>
+              <span style="font-size:11px;color:var(--muted);">{{ getProgress(c) }}%</span>
+            </td>
+            <td class="text-center"><span class="badge" [ngClass]="isUrgent(c) ? 'badge-danger' : 'badge-primary'">{{ getRemaining(c) }}j</span></td>
+            <td class="text-center"><button class="btn btn-sm btn-success" (click)="openEcloreModal(c.id_couvaison)"><i class="bi bi-sun"></i> Éclosion</button></td>
+          </tr>
+        }
+        @if (!activeList.length) {
+          <tr><td colspan="7" class="text-center text-muted" style="padding:24px;"><i class="bi bi-thermometer" style="font-size:28px;display:block;margin-bottom:8px;"></i>Aucune couvaison active</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- History -->
+<div class="table-card">
+  <div class="card-header"><span>Historique des éclosions</span></div>
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Lot mère</th><th>Date mise</th><th class="text-center">Œufs</th><th class="text-center">Éclos</th><th class="text-center">Taux</th><th>Lot né</th><th>Date éclosion</th></tr>
+      </thead>
+      <tbody>
+        @for (c of historyList; track c.id_couvaison) {
+          <tr>
+            <td>{{ getLotName(c.id_lot_mere) }}</td>
+            <td>{{ c.date_mise_couvaison | formatDate }}</td>
+            <td class="text-center">{{ c.nb_oeufs_couves }}</td>
+            <td class="text-center">{{ c.nb_ecloses }}</td>
+            <td class="text-center"><span class="badge" [ngClass]="getTauxClass(c)">{{ getTaux(c) }}%</span></td>
+            <td>{{ c.id_lot_ne ? getLotName(c.id_lot_ne) : '—' }}</td>
+            <td>{{ c.date_eclosion | formatDate }}</td>
+          </tr>
+        }
+        @if (!historyList.length) {
+          <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">Aucune éclosion enregistrée</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- New couvaison modal -->
+@if (showNewModal) {
+  <div class="modal-overlay" (click)="closeNewModal()">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle couvaison</h5><button class="btn-icon" (click)="closeNewModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot mère *</label>
+            <select class="form-select" [(ngModel)]="newLot">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date de mise en couvaison *</label><input type="date" class="form-control" [(ngModel)]="newDate" (input)="updateNewPreview()"></div>
+          <div><label class="form-label">Nombre d'œufs *</label><input type="number" class="form-control" [(ngModel)]="newNb" min="1"></div>
+          <div class="text-muted" style="font-size:13px;">{{ newPreview }}</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeNewModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="submitNew()">Lancer la couvaison</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Eclosion modal -->
+@if (showEcloreModal) {
+  <div class="modal-overlay" (click)="closeEcloreModal()">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Enregistrer l'éclosion</h5><button class="btn-icon" (click)="closeEcloreModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div class="text-muted" style="font-size:13px;">{{ ecloreInfo }}</div>
+          <div><label class="form-label">Nombre de poussins éclos *</label><input type="number" class="form-control" [(ngModel)]="ecloreNb" min="1" [max]="ecloreMax"></div>
+          <div><label class="form-label">Nom du nouveau lot *</label><input type="text" class="form-control" [(ngModel)]="ecloreNom" placeholder="ex: LOT4"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeEcloreModal()">Annuler</button>
+        <button class="btn btn-success" (click)="submitEclore()">Valider l'éclosion</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKOHO — Calendrier</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="partial-aside"></aside>
+        <div class="app-main">
+            <header class="app-header" id="partial-header"></header>
+            <main class="app-content">
+
+                <!-- Title + nav -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                    <h1 style="font-size:22px;font-weight:700;">Calendrier</h1>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <button class="btn btn-outline btn-sm" onclick="prevMonth()"><i class="bi bi-chevron-left"></i></button>
+                        <span style="font-weight:600;font-size:16px;min-width:180px;text-align:center;" id="cal-month-label"></span>
+                        <button class="btn btn-outline btn-sm" onclick="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+                        <button class="btn btn-outline btn-sm" onclick="goToday()" style="margin-left:8px;">Aujourd'hui</button>
+                    </div>
+                </div>
+
+                <!-- Toolbar: date range + event type toggles -->
+                <div class="card mb-20" style="padding:16px 24px;">
+                    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+                        <!-- Date range -->
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <label style="font-size:13px;font-weight:600;white-space:nowrap;">Plage :</label>
+                            <input type="date" class="form-control" id="cal-range-from" style="width:160px;font-size:13px;">
+                            <span style="color:var(--muted);">→</span>
+                            <input type="date" class="form-control" id="cal-range-to" style="width:160px;font-size:13px;">
+                            <button class="btn btn-primary btn-sm" onclick="loadRange()">Afficher</button>
+                            <button class="btn btn-outline btn-sm" onclick="clearRange()">Réinitialiser</button>
+                        </div>
+
+                        <!-- Separator -->
+                        <div style="width:1px;height:28px;background:var(--border);"></div>
+
+                        <!-- Event type toggles -->
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                            <label style="font-size:13px;font-weight:600;white-space:nowrap;">Afficher :</label>
+                            <label class="evt-toggle" style="--clr:#22C55E;">
+                                <input type="checkbox" checked data-type="production" onchange="onToggleFilter()">
+                                <span class="cal-dot" style="background:#22C55E;"></span> Production
+                            </label>
+                            <label class="evt-toggle" style="--clr:#EF4444;">
+                                <input type="checkbox" checked data-type="perte" onchange="onToggleFilter()">
+                                <span class="cal-dot" style="background:#EF4444;"></span> Pertes
+                            </label>
+                            <label class="evt-toggle" style="--clr:#3B82F6;">
+                                <input type="checkbox" checked data-type="vente" onchange="onToggleFilter()">
+                                <span class="cal-dot" style="background:#3B82F6;"></span> Ventes
+                            </label>
+                            <label class="evt-toggle" style="--clr:#F59E0B;">
+                                <input type="checkbox" checked data-type="couvaison" onchange="onToggleFilter()">
+                                <span class="cal-dot" style="background:#F59E0B;"></span> Couvaison
+                            </label>
+                            <label class="evt-toggle" style="--clr:#8B5CF6;">
+                                <input type="checkbox" checked data-type="eclosion" onchange="onToggleFilter()">
+                                <span class="cal-dot" style="background:#8B5CF6;"></span> Éclosion
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar grid -->
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div class="cal-header">
+                        <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div>
+                    </div>
+                    <div class="cal-grid" id="cal-grid"></div>
+                </div>
+
+                <!-- Day / range detail -->
+                <div id="day-detail" class="card mt-20" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0;">
+                        <h3 style="font-size:17px;font-weight:600;" id="detail-title"></h3>
+                        <button class="btn-icon" onclick="document.getElementById('day-detail').style.display='none'"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div id="detail-content" style="padding:8px 24px 24px;"></div>
+                </div>
+
+            </main>
+            <footer class="app-footer" id="partial-footer"></footer>
+        </div>
+    </div>
+
+    <style>
+        .cal-dot { display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle; }
+        .cal-header { display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-weight:600;font-size:14px;padding:14px 0;background:var(--bg);border-bottom:1px solid var(--border); }
+        .cal-grid { display:grid;grid-template-columns:repeat(7,1fr); }
+        .cal-cell { min-height:110px;padding:10px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s; }
+        .cal-cell:hover { background:var(--bg); }
+        .cal-cell.other-month { opacity:0.35; }
+        .cal-cell.today { background:#EFF6FF; }
+        .cal-cell.in-range { background:#F0F9FF; }
+        .cal-cell.range-start, .cal-cell.range-end { background:#DBEAFE; font-weight:700; }
+        .cal-cell .cal-day { font-size:14px;font-weight:600;margin-bottom:6px; }
+        .cal-cell .cal-dots { display:flex;gap:4px;flex-wrap:wrap; }
+        .cal-cell .cal-summary { font-size:11px;color:var(--text-secondary);margin-top:4px;line-height:1.4; }
+        .mt-20 { margin-top:20px; }
+        .mb-20 { margin-bottom:20px; }
+        .evt-toggle { display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;user-select:none;padding:4px 10px;border-radius:6px;border:1px solid var(--border);transition:all 0.15s; }
+        .evt-toggle:has(input:checked) { background:color-mix(in srgb, var(--clr) 10%, white);border-color:color-mix(in srgb, var(--clr) 30%, transparent); }
+        .evt-toggle input { display:none; }
+    </style>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/calendrier.js"></script>
+</body>
+</html>

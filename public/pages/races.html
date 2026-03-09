@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKOHO — Races</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="partial-aside"></aside>
+        <div class="app-main">
+            <header class="app-header" id="partial-header"></header>
+            <main class="app-content">
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                    <h1 style="font-size:22px;font-weight:700;">Races</h1>
+                    <button class="btn btn-primary" onclick="openModal()">
+                        <i class="bi bi-plus-lg"></i> Nouvelle race
+                    </button>
+                </div>
+
+                <!-- Visual cards -->
+                <div id="races-cards" class="kpi-grid mb-20" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));"></div>
+
+                <!-- Detailed table -->
+                <div class="table-card">
+                    <div class="card-header"><span>Détail des races</span></div>
+                    <div style="overflow-x:auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th class="text-end">Prix œuf (Ar)</th>
+                                    <th class="text-end">Prix/kg (Ar)</th>
+                                    <th class="text-center">Lots</th>
+                                    <th>Description</th>
+                                    <th style="width:100px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="races-tbody">
+                                <tr><td colspan="6" class="text-center text-muted" style="padding:32px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+            <footer class="app-footer" id="partial-footer"></footer>
+        </div>
+    </div>
+
+    <!-- Create/Edit modal -->
+    <div id="modal-race" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;">
+        <div style="max-width:480px;margin:100px auto;background:white;border-radius:var(--radius);box-shadow:var(--shadow-lg);">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-title">Nouvelle race</h5>
+                <button class="btn-icon" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid;gap:16px;">
+                    <div>
+                        <label class="form-label">Nom de la race *</label>
+                        <input type="text" class="form-control" id="race-nom" placeholder="ex: ISA Brown">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <label class="form-label">Prix de l'œuf (Ar) *</label>
+                            <input type="number" class="form-control" id="race-prix-oeuf" min="0" step="0.01">
+                        </div>
+                        <div>
+                            <label class="form-label">Prix au kg (Ar) *</label>
+                            <input type="number" class="form-control" id="race-prix-kg" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="race-desc" rows="2" placeholder="Description optionnelle..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+                <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+                <button class="btn btn-primary" id="modal-submit" onclick="submitRace()">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/races.js"></script>
+</body>
+</html>

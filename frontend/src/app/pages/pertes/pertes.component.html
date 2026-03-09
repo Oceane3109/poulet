@@ -1,0 +1,99 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Pertes / Mortalité</h1>
+  <button class="btn btn-primary" (click)="openModal()"><i class="bi bi-plus-lg"></i> Enregistrer une perte</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-danger"><div class="kpi-icon"><i class="bi bi-heartbreak"></i></div><div class="kpi-value">{{ kpiJour | formatNumber }}</div><div class="kpi-label">Pertes du jour</div></div>
+  <div class="kpi-card kpi-warning"><div class="kpi-icon"><i class="bi bi-calendar-week"></i></div><div class="kpi-value">{{ kpiMois | formatNumber }}</div><div class="kpi-label">Pertes du mois</div></div>
+  <div class="kpi-card kpi-primary"><div class="kpi-icon"><i class="bi bi-bar-chart"></i></div><div class="kpi-value">{{ kpiTotal | formatNumber }}</div><div class="kpi-label">Total cumulé</div></div>
+  <div class="kpi-card kpi-highlight"><div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div><div class="kpi-value" style="font-size:16px;">{{ kpiLot }}</div><div class="kpi-label">Lot le plus touché</div></div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterLot" (change)="applyFilters()">
+      <option value="">Tous les lots</option>
+      @for (lot of lots; track lot.id_lot) { <option [value]="lot.id_lot">{{ lot.nom_lot }}</option> }
+    </select>
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterCause" (change)="applyFilters()">
+      <option value="">Toutes les causes</option>
+      @for (c of causes; track c) { <option [value]="c">{{ c }}</option> }
+    </select>
+    <select class="form-select" style="width:160px;" [(ngModel)]="filterEntite" (change)="applyFilters()">
+      <option value="">Toutes entités</option>
+      <option value="Poulet">Poulet</option>
+      <option value="Oeuf">Oeuf</option>
+    </select>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterFrom" (change)="applyFilters()">
+    <span class="text-muted">→</span>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterTo" (change)="applyFilters()">
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Date</th><th>Lot</th><th>Entité</th><th class="text-end">Nombre</th><th>Cause</th></tr>
+      </thead>
+      <tbody>
+        @for (p of filtered; track $index) {
+          <tr>
+            <td>{{ p.date_perte | formatDate }}</td>
+            <td>{{ getLotName(p.id_lot) }}</td>
+            <td>
+              <span style="display:inline-flex;align-items:center;gap:4px;">
+                <i class="bi" [ngClass]="p.entite === 'Oeuf' ? 'bi-egg' : 'bi-feather'" [style.color]="p.entite === 'Oeuf' ? 'var(--warning)' : 'var(--danger)'"></i>
+                {{ p.entite || 'Poulet' }}
+              </span>
+            </td>
+            <td class="text-end"><strong style="color:var(--danger);">{{ p.nb_perdus }}</strong></td>
+            <td>
+              @if (p.cause) { <span class="badge badge-danger">{{ p.cause }}</span> }
+              @else { <span class="text-muted">Non spécifiée</span> }
+            </td>
+          </tr>
+        }
+        @if (!filtered.length) {
+          <tr><td colspan="5" class="text-center text-muted" style="padding:32px;"><i class="bi bi-heartbreak" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucune perte enregistrée</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Enregistrer une perte</h5><button class="btn-icon" (click)="closeModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot *</label>
+            <select class="form-select" [(ngModel)]="addLot">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="addDate"></div>
+          <div><label class="form-label">Nombre de pertes *</label><input type="number" class="form-control" [(ngModel)]="addNb" min="1"></div>
+          <div><label class="form-label">Entité *</label>
+            <select class="form-select" [(ngModel)]="addEntite">
+              <option value="Poulet">Poulet</option>
+              <option value="Oeuf">Oeuf</option>
+            </select>
+          </div>
+          <div><label class="form-label">Cause</label><input type="text" class="form-control" [(ngModel)]="addCause" placeholder="Ex: maladie, prédateur... (optionnel)"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="submitAdd()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}

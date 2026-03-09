@@ -1,0 +1,83 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Production d'œufs</h1>
+  <button class="btn btn-primary" (click)="openModal()"><i class="bi bi-plus-lg"></i> Nouvelle production</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-primary"><div class="kpi-icon"><i class="bi bi-egg"></i></div><div class="kpi-value">{{ kpiTotal | formatNumber }}</div><div class="kpi-label">Total produit</div></div>
+  <div class="kpi-card kpi-success"><div class="kpi-icon"><i class="bi bi-cart-check"></i></div><div class="kpi-value">{{ kpiVendu | formatNumber }}</div><div class="kpi-label">Vendus</div></div>
+  <div class="kpi-card kpi-highlight"><div class="kpi-icon"><i class="bi bi-box-seam"></i></div><div class="kpi-value">{{ kpiStock | formatNumber }}</div><div class="kpi-label">En stock</div></div>
+  <div class="kpi-card kpi-warning"><div class="kpi-icon"><i class="bi bi-thermometer-half"></i></div><div class="kpi-value">{{ kpiCouvaison }}</div><div class="kpi-label">En couvaison</div></div>
+</div>
+
+<!-- Sale rate -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span style="font-size:14px;font-weight:600;white-space:nowrap;">Taux de vente</span>
+    <div class="progress" style="flex:1;"><div class="progress-bar" [style.width.%]="saleRate"></div></div>
+    <span class="text-muted" style="font-size:13px;white-space:nowrap;">{{ saleRate }}%</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterLot" (change)="loadData()">
+      <option value="">Tous les lots</option>
+      @for (lot of lots; track lot.id_lot) { <option [value]="lot.id_lot">{{ lot.nom_lot }}</option> }
+    </select>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterFrom" (change)="applyFilters()">
+    <span class="text-muted">→</span>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterTo" (change)="applyFilters()">
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Date</th><th>Lot</th><th class="text-end">Nb œufs</th><th style="width:60px;"></th></tr>
+      </thead>
+      <tbody>
+        @for (o of filtered; track o.id_production) {
+          <tr>
+            <td>{{ o.date_production | formatDate }}</td>
+            <td>{{ getLotName(o.id_lot) }}</td>
+            <td class="text-end"><strong>{{ o.nb_oeufs | formatNumber }}</strong></td>
+            <td class="text-center"><button class="btn-icon" (click)="deleteOeuf(o.id_production)"><i class="bi bi-trash3" style="color:var(--danger);"></i></button></td>
+          </tr>
+        }
+        @if (!filtered.length) {
+          <tr><td colspan="4" class="text-center text-muted" style="padding:32px;"><i class="bi bi-egg" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucune production enregistrée</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle production</h5><button class="btn-icon" (click)="closeModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot *</label>
+            <select class="form-select" [(ngModel)]="addLot">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="addDate"></div>
+          <div><label class="form-label">Nombre d'œufs *</label><input type="number" class="form-control" [(ngModel)]="addNb" min="1"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="submitAdd()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}

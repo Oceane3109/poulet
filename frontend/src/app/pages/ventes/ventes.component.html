@@ -1,0 +1,187 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Ventes</h1>
+</div>
+
+<!-- Tabs -->
+<div class="tabs mb-20">
+  <button class="tab" [class.active]="currentTab==='oeufs'" (click)="switchTab('oeufs')"><i class="bi bi-egg"></i> Œufs</button>
+  <button class="tab" [class.active]="currentTab==='poulets'" (click)="switchTab('poulets')"><i class="bi bi-feather"></i> Poulets</button>
+  <button class="tab" [class.active]="currentTab==='lots'" (click)="switchTab('lots')"><i class="bi bi-collection"></i> Cession de lot</button>
+</div>
+
+<!-- Shared filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterLot" (change)="applyFilters()">
+      <option value="">Tous les lots</option>
+      @for (lot of lots; track lot.id_lot) { <option [value]="lot.id_lot">{{ lot.nom_lot }}</option> }
+    </select>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterFrom" (change)="applyFilters()">
+    <span class="text-muted">→</span>
+    <input type="date" class="form-control" style="width:160px;" [(ngModel)]="filterTo" (change)="applyFilters()">
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Tab: Oeufs -->
+@if (currentTab === 'oeufs') {
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="text-muted" style="font-size:14px;">Total : {{ totalOeufs | formatAr }} — {{ countOeufs }} vente(s)</div>
+    <button class="btn btn-primary btn-sm" (click)="openVOModal()"><i class="bi bi-plus"></i> Vente d'œufs</button>
+  </div>
+  <div class="table-card">
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead><tr><th>Date</th><th>Lot</th><th class="text-end">Nb œufs</th><th class="text-end">Prix unit.</th><th class="text-end">Total</th></tr></thead>
+        <tbody>
+          @for (v of filteredOeufs; track $index) {
+            <tr>
+              <td>{{ v.date_vente | formatDate }}</td>
+              <td>{{ getLotName(v.id_lot) }}</td>
+              <td class="text-end">{{ v.nb_oeufs | formatNumber }}</td>
+              <td class="text-end">{{ v.prix_unitaire | formatAr }}</td>
+              <td class="text-end"><strong>{{ v.prix_total | formatAr }}</strong></td>
+            </tr>
+          }
+          @if (!filteredOeufs.length) {
+            <tr><td colspan="5" class="text-center text-muted" style="padding:24px;">Aucune vente d'œufs</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- Tab: Poulets -->
+@if (currentTab === 'poulets') {
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="text-muted" style="font-size:14px;">Total : {{ totalPoulets | formatAr }} — {{ countPoulets }} vente(s)</div>
+    <button class="btn btn-primary btn-sm" (click)="openVPModal()"><i class="bi bi-plus"></i> Vente de poulets</button>
+  </div>
+  <div class="table-card">
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead><tr><th>Date</th><th>Lot</th><th class="text-end">Nb poulets</th><th class="text-end">Poids (kg)</th><th class="text-end">Prix/kg</th><th class="text-end">Total</th></tr></thead>
+        <tbody>
+          @for (v of filteredPoulets; track $index) {
+            <tr>
+              <td>{{ v.date_vente | formatDate }}</td>
+              <td>{{ getLotName(v.id_lot) }}</td>
+              <td class="text-end">{{ v.nb_poulets }}</td>
+              <td class="text-end">{{ v.poids_total_kg }} kg</td>
+              <td class="text-end">{{ v.prix_kg | formatAr }}</td>
+              <td class="text-end"><strong>{{ v.prix_total | formatAr }}</strong></td>
+            </tr>
+          }
+          @if (!filteredPoulets.length) {
+            <tr><td colspan="6" class="text-center text-muted" style="padding:24px;">Aucune vente de poulets</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- Tab: Lots -->
+@if (currentTab === 'lots') {
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="text-muted" style="font-size:14px;">Total : {{ totalLots | formatAr }} — {{ countLots }} cession(s)</div>
+    <button class="btn btn-primary btn-sm" (click)="openVLModal()"><i class="bi bi-plus"></i> Cession de lot</button>
+  </div>
+  <div class="table-card">
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead><tr><th>Date</th><th>Lot</th><th class="text-end">Prix de vente</th></tr></thead>
+        <tbody>
+          @for (v of filteredLots; track $index) {
+            <tr>
+              <td>{{ v.date_vente | formatDate }}</td>
+              <td>{{ getLotName(v.id_lot) }}</td>
+              <td class="text-end"><strong>{{ v.prix_vente | formatAr }}</strong></td>
+            </tr>
+          }
+          @if (!filteredLots.length) {
+            <tr><td colspan="3" class="text-center text-muted" style="padding:24px;">Aucune cession de lot</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- Vente oeuf modal -->
+@if (showVOModal) {
+  <div class="modal-overlay" (click)="showVOModal = false">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Vente d'œufs</h5><button class="btn-icon" (click)="showVOModal = false"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot *</label>
+            <select class="form-select" [(ngModel)]="voLot" (change)="updateVOTotal()">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="voDate"></div>
+          <div><label class="form-label">Nombre d'œufs *</label><input type="number" class="form-control" [(ngModel)]="voNb" min="1" (input)="updateVOTotal()"></div>
+          <div><label class="form-label">Prix unitaire (Ar) <span class="text-muted">— vide = prix race</span></label><input type="number" class="form-control" [(ngModel)]="voPrix" min="0" (input)="updateVOTotal()"></div>
+          <div class="text-muted" style="font-size:13px;">{{ voTotal }}</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="showVOModal = false">Annuler</button>
+        <button class="btn btn-primary" (click)="submitVO()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Vente poulet modal -->
+@if (showVPModal) {
+  <div class="modal-overlay" (click)="showVPModal = false">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Vente de poulets</h5><button class="btn-icon" (click)="showVPModal = false"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot *</label>
+            <select class="form-select" [(ngModel)]="vpLot" (change)="updateVPEstimates()">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="vpDate" (change)="updateVPEstimates()"></div>
+          <div><label class="form-label">Nombre de poulets *</label><input type="number" class="form-control" [(ngModel)]="vpNb" min="1" (input)="updateVPPoids()"></div>
+          <div><label class="form-label">Poids total (kg) * <span class="text-muted">{{ vpPoidsHint }}</span></label><input type="number" class="form-control" [(ngModel)]="vpPoids" min="0.1" step="0.1" (input)="updateVPTotal()"></div>
+          <div><label class="form-label">Prix/kg (Ar) <span class="text-muted">— vide = prix race</span></label><input type="number" class="form-control" [(ngModel)]="vpPrix" min="0" (input)="updateVPTotal()"></div>
+          <div class="text-muted" style="font-size:13px;">{{ vpTotal }}</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="showVPModal = false">Annuler</button>
+        <button class="btn btn-primary" (click)="submitVP()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Vente lot modal -->
+@if (showVLModal) {
+  <div class="modal-overlay" (click)="showVLModal = false">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Cession de lot</h5><button class="btn-icon" (click)="showVLModal = false"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Lot *</label>
+            <select class="form-select" [(ngModel)]="vlLot">
+              @for (lot of lots; track lot.id_lot) { <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option> }
+            </select>
+          </div>
+          <div><label class="form-label">Date *</label><input type="date" class="form-control" [(ngModel)]="vlDate"></div>
+          <div><label class="form-label">Prix de vente (Ar) *</label><input type="number" class="form-control" [(ngModel)]="vlPrix" min="0"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="showVLModal = false">Annuler</button>
+        <button class="btn btn-primary" (click)="submitVL()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}

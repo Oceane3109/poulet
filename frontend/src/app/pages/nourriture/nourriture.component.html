@@ -1,0 +1,68 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Nourriture</h1>
+  <button class="btn btn-primary" (click)="openModal()"><i class="bi bi-plus-lg"></i> Nouvel aliment</button>
+</div>
+
+<div class="table-card">
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Nom</th><th>Type</th><th class="text-end">Prix/gramme (Ar)</th><th class="text-end">Prix/kg (Ar)</th><th class="text-center">Fiches liées</th><th style="width:100px;"></th></tr>
+      </thead>
+      <tbody>
+        @for (n of allNourriture; track n.id_nourriture) {
+          <tr>
+            <td><strong>{{ n.nom_nourriture }}</strong></td>
+            <td>
+              @if (n.type_aliment) { <span class="badge badge-primary">{{ n.type_aliment }}</span> }
+              @else { <span class="text-muted">—</span> }
+            </td>
+            <td class="text-end" [style.color]="getCostClass(n)">{{ n.prix_gramme.toFixed(4) }} Ar</td>
+            <td class="text-end">{{ getPrixKg(n) | formatAr }}</td>
+            <td class="text-center"><span class="badge badge-muted">{{ n.nb_fiches || 0 }}</span></td>
+            <td>
+              <div style="display:flex;gap:4px;justify-content:center;">
+                <button class="btn-icon" (click)="openModal(n.id_nourriture)"><i class="bi bi-pencil"></i></button>
+                <button class="btn-icon" (click)="deleteNourr(n.id_nourriture)" [disabled]="(n.nb_fiches || 0) > 0" [style.opacity]="(n.nb_fiches || 0) > 0 ? '0.3' : '1'">
+                  <i class="bi bi-trash3" [style.color]="(n.nb_fiches || 0) > 0 ? 'var(--muted)' : 'var(--danger)'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+        @if (!allNourriture.length) {
+          <tr><td colspan="6" class="text-center text-muted" style="padding:32px;"><i class="bi bi-basket2" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucun aliment</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" style="max-width:440px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">{{ modalTitle }}</h5><button class="btn-icon" (click)="closeModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Nom *</label><input type="text" class="form-control" [(ngModel)]="nourrNom" placeholder="ex: Granulés ponte A"></div>
+          <div><label class="form-label">Type d'aliment</label>
+            <select class="form-select" [(ngModel)]="nourrType">
+              <option value="">— Choisir —</option>
+              <option value="Granulés">Granulés</option>
+              <option value="Mash">Mash</option>
+              <option value="Démarrage">Démarrage</option>
+              <option value="Croissance">Croissance</option>
+            </select>
+          </div>
+          <div><label class="form-label">Prix par gramme (Ar) *</label><input type="number" class="form-control" [(ngModel)]="nourrPrix" min="0" step="0.0001" (input)="updatePrixKg()"></div>
+          <div class="text-muted" style="font-size:13px;">{{ prixKgPreview }}</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="submitNourr()">{{ modalSubmit }}</button>
+      </div>
+    </div>
+  </div>
+}

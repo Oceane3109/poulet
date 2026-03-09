@@ -1,0 +1,82 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Races</h1>
+  <button class="btn btn-primary" (click)="openModal()"><i class="bi bi-plus-lg"></i> Nouvelle race</button>
+</div>
+
+<!-- Visual cards -->
+<div class="kpi-grid mb-20" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+  @for (r of races; track r.id_race; let i = $index) {
+    <div class="card" [style.padding]="'20px'" [style.border-left]="'4px solid ' + getColor(i)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div [style.width]="'40px'" [style.height]="'40px'" [style.border-radius]="'10px'" [style.background]="getColor(i) + '15'" style="display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-bookmarks" [style.color]="getColor(i)" style="font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:15px;">{{ r.nom_race }}</div>
+          <div class="text-muted" style="font-size:12px;">{{ r.nb_lots || 0 }} lot(s)</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:13px;">
+        <div><span class="text-muted">Œuf :</span> <strong>{{ r.prix_oeuf | formatAr }}</strong></div>
+        <div><span class="text-muted">Kg :</span> <strong>{{ r.prix_kg | formatAr }}</strong></div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Detailed table -->
+<div class="table-card">
+  <div class="card-header"><span>Détail des races</span></div>
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Nom</th><th class="text-end">Prix œuf (Ar)</th><th class="text-end">Prix/kg (Ar)</th><th class="text-center">Lots</th><th>Description</th><th style="width:100px;"></th></tr>
+      </thead>
+      <tbody>
+        @for (r of races; track r.id_race) {
+          <tr>
+            <td><strong>{{ r.nom_race }}</strong></td>
+            <td class="text-end">{{ r.prix_oeuf | formatAr }}</td>
+            <td class="text-end">{{ r.prix_kg | formatAr }}</td>
+            <td class="text-center"><span class="badge badge-primary">{{ r.nb_lots || 0 }}</span></td>
+            <td class="text-muted">{{ r.description || '—' }}</td>
+            <td>
+              <div style="display:flex;gap:4px;justify-content:center;">
+                <button class="btn-icon" (click)="openModal(r.id_race)"><i class="bi bi-pencil"></i></button>
+                <button class="btn-icon" (click)="deleteRace(r.id_race)" [disabled]="(r.nb_lots || 0) > 0" [style.opacity]="(r.nb_lots || 0) > 0 ? '0.3' : '1'">
+                  <i class="bi bi-trash3" [style.color]="(r.nb_lots || 0) > 0 ? 'var(--muted)' : 'var(--danger)'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+        @if (!races.length) {
+          <tr><td colspan="6" class="text-center text-muted" style="padding:32px;"><i class="bi bi-bookmarks" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucune race</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" style="max-width:480px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">{{ modalTitle }}</h5><button class="btn-icon" (click)="closeModal()"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;gap:16px;">
+          <div><label class="form-label">Nom de la race *</label><input type="text" class="form-control" [(ngModel)]="raceNom" placeholder="ex: ISA Brown"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label class="form-label">Prix de l'œuf (Ar) *</label><input type="number" class="form-control" [(ngModel)]="racePrixOeuf" min="0" step="0.01"></div>
+            <div><label class="form-label">Prix au kg (Ar) *</label><input type="number" class="form-control" [(ngModel)]="racePrixKg" min="0" step="0.01"></div>
+          </div>
+          <div><label class="form-label">Description</label><textarea class="form-control" [(ngModel)]="raceDesc" rows="2" placeholder="Description optionnelle..."></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="submitRace()">{{ modalSubmit }}</button>
+      </div>
+    </div>
+  </div>
+}

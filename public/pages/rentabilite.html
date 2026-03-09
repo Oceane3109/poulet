@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKOHO — Rentabilité</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="partial-aside"></aside>
+        <div class="app-main">
+            <header class="app-header" id="partial-header"></header>
+            <main class="app-content">
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                    <div>
+                        <h1 style="font-size:22px;font-weight:700;margin-bottom:4px;">Rentabilité</h1>
+                        <p class="text-muted" id="renta-subtitle">Analyse financière par lot</p>
+                    </div>
+                </div>
+
+                <!-- KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card kpi-highlight">
+                        <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <div class="kpi-value" id="kpi-benefice">-</div>
+                        <div class="kpi-label">Bénéfice cumulé</div>
+                    </div>
+                    <div class="kpi-card kpi-success">
+                        <div class="kpi-icon"><i class="bi bi-trophy"></i></div>
+                        <div class="kpi-value" id="kpi-meilleur" style="font-size:16px;">-</div>
+                        <div class="kpi-label">Meilleur lot</div>
+                    </div>
+                    <div class="kpi-card kpi-danger">
+                        <div class="kpi-icon"><i class="bi bi-arrow-down-circle"></i></div>
+                        <div class="kpi-value" id="kpi-deficitaire" style="font-size:16px;">-</div>
+                        <div class="kpi-label">Lot déficitaire</div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-20" style="padding:16px 20px;">
+                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <select class="form-select" style="width:200px;" id="filter-race" onchange="renderTable()">
+                            <option value="">Toutes les races</option>
+                        </select>
+                        <select class="form-select" style="width:200px;" id="filter-marge" onchange="renderTable()">
+                            <option value="">Toutes les marges</option>
+                            <option value="positif">Bénéficiaire (≥0)</option>
+                            <option value="negatif">Déficitaire (&lt;0)</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="clearRentaFilters()">Réinitialiser</button>
+                    </div>
+                </div>
+
+                <!-- Financial table -->
+                <div class="table-card">
+                    <div class="card-header">
+                        <span>Détail financier par lot</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Lot</th>
+                                    <th>Race</th>
+                                    <th class="text-end">Acquisition</th>
+                                    <th class="text-end">Nourriture (est.)</th>
+                                    <th class="text-end">Rev. œufs</th>
+                                    <th class="text-end">Rev. poulets</th>
+                                    <th class="text-end">Bénéfice net</th>
+                                    <th class="text-end">Marge</th>
+                                </tr>
+                            </thead>
+                            <tbody id="renta-tbody">
+                                <tr><td colspan="8" class="text-center text-muted" style="padding:32px;">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+            <footer class="app-footer" id="partial-footer"></footer>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/pages/rentabilite.js"></script>
+</body>
+</html>

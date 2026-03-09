@@ -1,0 +1,69 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;margin-bottom:4px;">Rentabilité</h1>
+    <p class="text-muted">{{ subtitle }}</p>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-highlight"><div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div><div class="kpi-value">{{ kpiBenefice }}</div><div class="kpi-label">Bénéfice cumulé</div></div>
+  <div class="kpi-card kpi-success"><div class="kpi-icon"><i class="bi bi-trophy"></i></div><div class="kpi-value" style="font-size:16px;">{{ kpiMeilleur }}</div><div class="kpi-label">Meilleur lot</div></div>
+  <div class="kpi-card kpi-danger"><div class="kpi-icon"><i class="bi bi-arrow-down-circle"></i></div><div class="kpi-value" style="font-size:16px;">{{ kpiDeficitaire }}</div><div class="kpi-label">Lot déficitaire</div></div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterRace" (change)="applyFilters()">
+      <option value="">Toutes les races</option>
+      @for (r of raceNames; track r) { <option [value]="r">{{ r }}</option> }
+    </select>
+    <select class="form-select" style="width:200px;" [(ngModel)]="filterMarge" (change)="applyFilters()">
+      <option value="">Toutes les marges</option>
+      <option value="positif">Bénéficiaire (≥0)</option>
+      <option value="negatif">Déficitaire (&lt;0)</option>
+    </select>
+    <button class="btn btn-outline btn-sm" (click)="clearFilters()">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Financial table -->
+<div class="table-card">
+  <div class="card-header"><span>Détail financier par lot</span></div>
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr><th>Lot</th><th>Race</th><th class="text-end">Acquisition</th><th class="text-end">Nourriture (est.)</th><th class="text-end">Rev. œufs</th><th class="text-end">Rev. poulets</th><th class="text-end">Bénéfice net</th><th class="text-end">Marge</th></tr>
+      </thead>
+      <tbody>
+        @for (r of filtered; track $index) {
+          <tr>
+            <td><strong>{{ r.nom_lot }}</strong></td>
+            <td>{{ r.nom_race || '—' }}</td>
+            <td class="text-end">{{ r.cout_acquisition || 0 | formatAr }}</td>
+            <td class="text-end">{{ r.cout_nourriture_estime || 0 | formatAr }}</td>
+            <td class="text-end">{{ r.revenus_oeufs || 0 | formatAr }}</td>
+            <td class="text-end">{{ r.revenus_poulets || 0 | formatAr }}</td>
+            <td class="text-end"><strong [style.color]="getBenefice(r) >= 0 ? 'var(--success)' : 'var(--danger)'">{{ getBenefice(r) | formatAr }}</strong></td>
+            <td class="text-end"><span class="badge" [ngClass]="getMarge(r) >= 0 ? 'badge-success' : 'badge-danger'">{{ getMarge(r) }}%</span></td>
+          </tr>
+        }
+        @if (!filtered.length) {
+          <tr><td colspan="8" class="text-center text-muted" style="padding:32px;"><i class="bi bi-graph-up-arrow" style="font-size:32px;display:block;margin-bottom:8px;"></i>Aucune donnée de rentabilité</td></tr>
+        }
+        @if (filtered.length) {
+          <tr style="font-weight:700;background:var(--bg);">
+            <td colspan="2">TOTAL</td>
+            <td class="text-end">{{ totals.acq | formatAr }}</td>
+            <td class="text-end">{{ totals.nourr | formatAr }}</td>
+            <td class="text-end">{{ totals.rOeufs | formatAr }}</td>
+            <td class="text-end">{{ totals.rPoulets | formatAr }}</td>
+            <td class="text-end" [style.color]="totals.benefice >= 0 ? 'var(--success)' : 'var(--danger)'">{{ totals.benefice | formatAr }}</td>
+            <td class="text-end"><span class="badge" [ngClass]="totals.marge >= 0 ? 'badge-success' : 'badge-danger'">{{ totals.marge }}%</span></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

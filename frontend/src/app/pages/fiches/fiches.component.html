@@ -1,0 +1,122 @@
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:700;">Fiches de croissance</h1>
+  <div style="display:flex;gap:8px;">
+    @if (selectedLot) {
+      <button class="btn btn-outline" (click)="exportCSV()"><i class="bi bi-download"></i> Exporter CSV</button>
+      <button class="btn btn-danger btn-sm" (click)="showClearModal = true"><i class="bi bi-trash3"></i> Tout effacer</button>
+      <button class="btn btn-primary" [disabled]="!hasChanges" (click)="saveFiche()"><i class="bi bi-check-lg"></i> Sauvegarder</button>
+    }
+  </div>
+</div>
+
+<!-- Lot selector -->
+<div class="card mb-20" style="padding:16px 20px;">
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+    <div style="flex:1;min-width:250px;">
+      <label class="form-label">Sélectionner un lot</label>
+      <select class="form-select" [(ngModel)]="selectedLotId" (change)="onLotChange()">
+        <option [ngValue]="null">— Choisir un lot —</option>
+        @for (lot of lots; track lot.id_lot) {
+          <option [ngValue]="lot.id_lot">{{ lot.nom_lot }}</option>
+        }
+      </select>
+    </div>
+    @if (selectedLot) {
+      <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+        <span class="badge badge-primary">{{ selectedLot.nom_race }}</span>
+        <span class="text-muted" style="font-size:13px;">Semaine actuelle : <strong>S{{ computeCurrentWeek() }}</strong></span>
+        <span class="text-muted" style="font-size:13px;">{{ ficheRows.length }} semaine(s)</span>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Empty state -->
+@if (!selectedLot) {
+  <div class="card" style="padding:48px;text-align:center;">
+    <i class="bi bi-journal-text" style="font-size:48px;color:var(--muted);display:block;margin-bottom:12px;"></i>
+    <p class="text-muted">Sélectionnez un lot pour afficher sa fiche de croissance.</p>
+  </div>
+}
+
+<!-- Fiche content -->
+@if (selectedLot) {
+  <div class="table-card mb-20">
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Semaine</th><th>Âge (sem.)</th><th>Variation (g/sem.)</th>
+            <th>Nourriture</th><th>Quantité (g)</th>
+            <th class="text-end">Coût estimé/poulet</th>
+            <th class="text-center">Statut</th>
+            <th style="width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of ficheRows; track $index; let last = $last) {
+            <tr [style.background]="getRowStatus(row) === 'current' ? '#EFF6FF' : (row._saved === false ? '#FFF7ED' : '')">
+              <td><strong>S{{ row.semaine }}</strong> @if (row._saved === false) { <span class="badge badge-warning" style="font-size:10px;">Non sauvegardé</span> }</td>
+              <td>{{ row.age }}</td>
+              <td>{{ row.variation }} g</td>
+              <td>{{ row.nom_nourriture || getNourritureName(row.id_nourriture) }}</td>
+              <td>{{ row.poids }} g</td>
+              <td class="text-end">{{ getCost(row) | formatAr }}</td>
+              <td class="text-center">
+                @switch (getRowStatus(row)) {
+                  @case ('passed') { <span class="badge badge-success">Passée</span> }
+                  @case ('current') { <span class="badge badge-primary">En cours</span> }
+                  @default { <span class="badge badge-muted">À venir</span> }
+                }
+              </td>
+              <td>
+                @if (last) {
+                  <button class="btn-icon" (click)="removeLastRow()"><i class="bi bi-trash3" style="color:var(--danger);"></i></button>
+                } @else {
+                  <i class="bi bi-lock" style="color:var(--muted);" title="Seule la dernière ligne peut être supprimée"></i>
+                }
+              </td>
+            </tr>
+          }
+          @if (!ficheRows.length) {
+            <tr><td colspan="8" class="text-center text-muted" style="padding:24px;">Aucune semaine dans cette fiche</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add form -->
+  <div class="card" style="padding:16px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <i class="bi bi-plus-circle" style="color:var(--primary);"></i>
+      <span style="font-weight:600;font-size:14px;">Ajouter une semaine</span>
+      <span class="text-muted" style="font-size:13px;">Semaine {{ getNextSemaine() }}, Âge {{ getNextAge() }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 120px 120px auto;gap:8px;align-items:end;">
+      <div>
+        <label class="form-label fs-sm">Nourriture</label>
+        <select class="form-select" [(ngModel)]="addNourr">
+          @for (n of nourriture; track n.id_nourriture) { <option [ngValue]="n.id_nourriture">{{ n.nom_nourriture }}</option> }
+        </select>
+      </div>
+      <div><label class="form-label fs-sm">Quantité (g)</label><input type="number" class="form-control" [(ngModel)]="addPoids" min="1"></div>
+      <div><label class="form-label fs-sm">Variation (g)</label><input type="number" class="form-control" [(ngModel)]="addVar"></div>
+      <button class="btn btn-primary" style="height:40px;" (click)="addRow()"><i class="bi bi-plus"></i></button>
+    </div>
+  </div>
+}
+
+<!-- Clear modal -->
+@if (showClearModal) {
+  <div class="modal-overlay" (click)="showClearModal = false">
+    <div class="modal-content" style="max-width:400px;" (click)="$event.stopPropagation()">
+      <div class="modal-header"><h5 class="modal-title">Confirmer la suppression</h5><button class="btn-icon" (click)="showClearModal = false"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-body"><p>Voulez-vous vraiment effacer toutes les semaines de cette fiche ?</p></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="showClearModal = false">Annuler</button>
+        <button class="btn btn-danger" (click)="clearAll()">Tout effacer</button>
+      </div>
+    </div>
+  </div>
+}
